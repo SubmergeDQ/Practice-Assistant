@@ -191,6 +191,14 @@ code {
 }
 .btn-guide:hover { background: var(--primary-soft); border-color: var(--primary); }
 
+.btn-online {
+  background: var(--primary-soft);
+  border-color: #c3d3fb;
+  color: var(--primary-d);
+}
+.btn-online:hover:not(:disabled) { background: #e2eaff; border-color: var(--primary); }
+.btn-online:disabled { opacity: .6; cursor: progress; }
+
 .btn-danger { background: var(--bad); color: #fff; box-shadow: 0 4px 12px rgba(224, 75, 69, .2); }
 .btn-danger:hover:not(:disabled) { background: #c93c37; transform: translateY(-1px); }
 
@@ -248,6 +256,56 @@ body.modal-open { overflow: hidden; }
 }
 
 .modal-actions .btn { min-width: 88px; }
+
+/* 在线题库选择面板 */
+
+.modal-card.is-wide { width: min(560px, 100%); }
+
+.online-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.online-count { font-size: 12.5px; color: var(--muted); flex: none; }
+
+.online-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  max-height: min(48vh, 360px);
+  overflow-y: auto;
+}
+
+.online-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: all .14s ease;
+}
+
+.online-item:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-soft); }
+.online-item:disabled { cursor: progress; opacity: .7; }
+
+.oi-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.oi-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.oi-meta { font-size: 12px; color: var(--muted); }
+.oi-go { flex: none; font-size: 12.5px; color: var(--primary-d); font-weight: 550; }
+
+.online-empty {
+  margin: 0;
+  padding: 22px 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.modal-text.is-error { color: #a8342f; }
 
 /* ---------------- 上传区 ---------------- */
 

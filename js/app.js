@@ -168,6 +168,169 @@
   }
 
   /* =========================================================
+   * 在线题库：直接读取仓库 banks/ 目录
+   * =======================================================*/
+
+  // 同站优先（GitHub Pages）；失败再退回 raw.githubusercontent，
+  // 这样双击本地 index.html 打开时也能用
+  const ONLINE_SOURCES = [
+    'banks/',
+    'https://raw.githubusercontent.com/SubmergeDQ/Practice-Assistant/main/banks/'
+  ];
+  const ONLINE_TIMEOUT = 8000;
+
+  let onlineOpen = false;
+  let onlineHome = ''; // 上一次成功的源，下次优先用
+
+  /** 带时间戳重新拉取，绕开浏览器与 CDN 缓存 */
+  function fetchFreshText(url) {
+    const u = url + (url.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now();
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), ONLINE_TIMEOUT) : null;
+    return fetch(u, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+      .then((res) => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.text();
+      })
+      .finally(() => { if (timer) clearTimeout(timer); });
+  }
+
+  async function fetchFromRepo(path) {
+    const order = onlineHome
+      ? [onlineHome].concat(ONLINE_SOURCES.filter((b) => b !== onlineHome))
+      : ONLINE_SOURCES.slice();
+    const fails = [];
+    for (const base of order) {
+      try {
+        const text = await fetchFreshText(base + path);
+        onlineHome = base;
+        return text;
+      } catch (err) {
+        fails.push((base.indexOf('http') === 0 ? 'raw' : '本站') + ' ' + (err && err.message ? err.message : err));
+      }
+    }
+    throw new Error(fails.join('；'));
+  }
+
+  async function readOnlineManifest() {
+    const text = await fetchFromRepo('index.json');
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error('index.json 不是合法 JSON');
+    }
+    const list = Array.isArray(data) ? data : data && data.banks;
+    if (!Array.isArray(list)) throw new Error('index.json 里缺少 banks 数组');
+    return list.filter((it) => it && it.file);
+  }
+
+  function renderOnlineList(items) {
+    const box = $('#online-list');
+    box.innerHTML = '';
+    if (!items.length) {
+      box.innerHTML = '<p class="online-empty">仓库里还没有题库文件。<br>把 JSON 放进 banks/，再登记到 banks/index.json 即可。</p>';
+      $('#online-count').textContent = '';
+      return;
+    }
+    $('#online-count').textContent = '共 ' + items.length + ' 个';
+    items.forEach((it) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'online-item';
+      const meta = [it.desc, it.count ? it.count + ' 题' : '', it.score ? '满分 ' + it.score + ' 分' : '']
+        .filter(Boolean)
+        .join(' · ');
+      btn.innerHTML =
+        '<span class="oi-main">' +
+        '<span class="oi-name">' + esc(it.name || it.file) + '</span>' +
+        (meta ? '<span class="oi-meta">' + esc(meta) + '</span>' : '') +
+        '</span><span class="oi-go">载入</span>';
+      btn.addEventListener('click', () => loadOnlineBank(it, btn));
+      box.appendChild(btn);
+    });
+  }
+
+  async function refreshOnline() {
+    const box = $('#online-list');
+    const tip = $('#online-tip');
+    box.innerHTML = '<p class="online-empty">正在读取仓库里的题库…</p>';
+    $('#online-count').textContent = '';
+    tip.classList.remove('is-error');
+    tip.textContent = '题库文件放在 GitHub 仓库的 banks/ 目录，每次打开都会重新拉取最新列表。';
+    try {
+      renderOnlineList(await readOnlineManifest());
+    } catch (err) {
+      box.innerHTML =
+        '<p class="online-empty">读取在线题库失败。<br>如果是双击本地 index.html 打开的，浏览器会拦截跨域请求，请改用线上地址访问。</p>';
+      tip.classList.add('is-error');
+      tip.textContent = '失败原因：' + (err && err.message ? err.message : err);
+    }
+  }
+
+  async function loadOnlineBank(entry, btn) {
+    const tip = $('#online-tip');
+    const go = btn.querySelector('.oi-go');
+    const goText = go ? go.textContent : '载入';
+    btn.disabled = true;
+    if (go) go.textContent = '载入中…';
+    tip.classList.remove('is-error');
+    tip.textContent = '正在从仓库读取「' + (entry.name || entry.file) + '」…';
+
+    try {
+      const text = await fetchFromRepo(encodeURIComponent(entry.file));
+      const bank = /\.txt$/i.test(entry.file) ? P.parseText(text) : P.parseJSON(text);
+      if (!bank.questions.length) throw new Error('没有解析出有效题目');
+      bank.fileName = entry.name || entry.file;
+
+      closeOnline();
+      handleBank(bank);
+      if (!bank.warnings || !bank.warnings.length) {
+        notice('已从在线题库载入「' + esc(bank.title) + '」，共 ' + bank.questions.length + ' 题。', 'ok');
+      }
+    } catch (err) {
+      tip.classList.add('is-error');
+      tip.textContent = '载入失败：' + (err && err.message ? err.message : err);
+    } finally {
+      btn.disabled = false;
+      if (go) go.textContent = goText;
+    }
+  }
+
+  function openOnline() {
+    if (onlineOpen) return;
+    onlineOpen = true;
+    $('#online-modal').classList.remove('is-hidden');
+    document.body.classList.add('modal-open');
+    setTimeout(() => { const b = $('#online-close'); if (b) b.focus(); }, 0);
+    refreshOnline();
+  }
+
+  function closeOnline() {
+    if (!onlineOpen) return;
+    onlineOpen = false;
+    $('#online-modal').classList.add('is-hidden');
+    document.body.classList.remove('modal-open');
+    const back = $('#btn-online');
+    if (back) back.focus();
+  }
+
+  function bindOnline() {
+    $('#btn-online').addEventListener('click', openOnline);
+    $('#online-close').addEventListener('click', closeOnline);
+    $('#online-mask').addEventListener('click', closeOnline);
+    $('#online-refresh').addEventListener('click', refreshOnline);
+
+    document.addEventListener('keydown', (e) => {
+      if (!onlineOpen) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeOnline();
+      }
+    });
+  }
+
+  /* =========================================================
    * 上传与解析
    * =======================================================*/
 
@@ -1032,7 +1195,7 @@
 
   function bindKeyboard() {
     document.addEventListener('keydown', (e) => {
-      if (modalResolve) return; // 弹窗打开时，快捷键不生效
+      if (modalResolve || onlineOpen) return; // 弹窗打开时，快捷键不生效
       if ($('#view-practice').classList.contains('is-hidden')) return;
       const tag = (e.target.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
@@ -1076,6 +1239,7 @@
     bindPractice();
     bindResult();
     bindModal();
+    bindOnline();
     bindKeyboard();
     showView('upload');
   }
