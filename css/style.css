@@ -759,7 +759,6 @@ code {
   .result-actions { flex-direction: row; flex-wrap: wrap; width: 100%; }
   .result-actions .btn { flex: 1; min-width: 110px; }
   .hero h1 { font-size: 21px; }
-  .steps .step span { display: none; }
 }
 
 @media (max-width: 560px) {
@@ -767,6 +766,7 @@ code {
   .topbar-inner { padding: 11px 14px; }
   .brand-text span { display: none; }
   .step { padding: 4px 8px; font-size: 12px; }
+  .steps .step span { display: none; }
   .card { padding: 16px; }
   .question-card { padding: 17px; }
   .q-stem { font-size: 15px; }
