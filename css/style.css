@@ -184,6 +184,64 @@ code {
 }
 .btn-guide:hover { background: var(--primary-soft); border-color: var(--primary); }
 
+.btn-danger { background: var(--bad); color: #fff; box-shadow: 0 4px 12px rgba(224, 75, 69, .2); }
+.btn-danger:hover:not(:disabled) { background: #c93c37; transform: translateY(-1px); }
+
+/* ---------------- 站点内确认弹窗 ---------------- */
+
+body.modal-open { overflow: hidden; }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.modal-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 26, 43, .46);
+}
+
+.modal-card {
+  position: relative;
+  width: min(430px, 100%);
+  max-height: calc(100vh - 44px);
+  overflow-y: auto;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 24px 60px rgba(15, 25, 45, .28);
+  animation: modal-in .16s ease-out;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.modal-title { font-size: 16px; font-weight: 650; margin-bottom: 9px; }
+
+.modal-text {
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--ink-2);
+  white-space: pre-line;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-actions .btn { min-width: 88px; }
+
 /* ---------------- 上传区 ---------------- */
 
 .dropzone {

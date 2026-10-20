@@ -94,6 +94,80 @@
   }
 
   /* =========================================================
+   * 站点内确认弹窗（替代浏览器原生 confirm）
+   * =======================================================*/
+
+  let modalResolve = null;
+  let modalFocusBack = null;
+
+  /**
+   * 打开确认弹窗，返回 Promise<boolean>
+   * @param {{title?:string, text?:string, okText?:string, cancelText?:string, danger?:boolean}} opts
+   */
+  function ask(opts) {
+    const el = $('#modal');
+    if (!el) {
+      // 理论上不会发生：弹窗节点缺失时直接放弃操作，避免静默误触
+      console.warn('[练习助手] 未找到确认弹窗节点，操作已取消');
+      return Promise.resolve(false);
+    }
+    // 已有弹窗未关闭时，新的请求按「取消」处理，避免两个弹窗叠在一起
+    if (modalResolve) return Promise.resolve(false);
+
+    $('#modal-title').textContent = opts.title || '请确认';
+    const textEl = $('#modal-text');
+    textEl.textContent = opts.text || '';
+    textEl.classList.toggle('is-hidden', !opts.text);
+    $('#modal-ok').className = 'btn ' + (opts.danger ? 'btn-danger' : 'btn-primary');
+    $('#modal-ok').textContent = opts.okText || '确定';
+    $('#modal-cancel').textContent = opts.cancelText || '取消';
+
+    modalFocusBack = document.activeElement;
+    el.classList.remove('is-hidden');
+    document.body.classList.add('modal-open');
+    setTimeout(() => { const b = $('#modal-ok'); if (b) b.focus(); }, 0);
+
+    return new Promise((resolve) => { modalResolve = resolve; });
+  }
+
+  function closeModal(result) {
+    if (!modalResolve) return;
+    $('#modal').classList.add('is-hidden');
+    document.body.classList.remove('modal-open');
+    const done = modalResolve;
+    modalResolve = null;
+    const back = modalFocusBack;
+    modalFocusBack = null;
+    if (back && back.focus) back.focus();
+    done(result);
+  }
+
+  function bindModal() {
+    $('#modal-ok').addEventListener('click', () => closeModal(true));
+    $('#modal-cancel').addEventListener('click', () => closeModal(false));
+    $('#modal-mask').addEventListener('click', () => closeModal(false));
+
+    document.addEventListener('keydown', (e) => {
+      if (!modalResolve) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeModal(false);
+        return;
+      }
+      if (e.key === 'Tab') {
+        // 焦点锁在弹窗内的两个按钮上
+        const items = [$('#modal-cancel'), $('#modal-ok')];
+        e.preventDefault();
+        const i = items.indexOf(document.activeElement);
+        const next = e.shiftKey
+          ? (i <= 0 ? items.length - 1 : i - 1)
+          : (i === items.length - 1 ? 0 : i + 1);
+        items[next].focus();
+      }
+    });
+  }
+
+  /* =========================================================
    * 上传与解析
    * =======================================================*/
 
@@ -505,10 +579,18 @@
     confirmFinish();
   }
 
-  function confirmFinish() {
+  async function confirmFinish() {
     let pending = 0;
     S.questions.forEach((q, i) => { if (!P.isAnswered(q, S.responses[i])) pending++; });
-    if (pending > 0 && !window.confirm('还有 ' + pending + ' 题未作答，未作答的题目将按错误计分。确定提交吗？')) return;
+    if (pending > 0) {
+      const ok = await ask({
+        title: '还有 ' + pending + ' 题未作答',
+        text: '未作答的题目将按错误计分，确定现在交卷吗？',
+        okText: '确定交卷',
+        cancelText: '继续作答'
+      });
+      if (!ok) return;
+    }
     finish();
   }
 
@@ -869,13 +951,17 @@
       el.addEventListener('change', () => { if (el.checked) S.order = el.value; })
     );
 
-    switchEl.addEventListener('click', () => {
+    switchEl.addEventListener('click', async () => {
       if (!S.shuffleOptions) {
-        const ok = window.confirm(
-          '开启后，每道题的选项会重新排列并重新编号 A/B/C/D。\n\n' +
-          '如果解析里用字母指代选项（例如「故选 C」），重编号后字母含义会与原题不同。' +
-          '判题后的解析区会附上一份「原顺序」对照，请以对照为准。\n\n确定开启吗？'
-        );
+        const ok = await ask({
+          title: '开启选项乱序？',
+          text:
+            '每道题的选项会重新排列并重新编号 A/B/C/D。\n' +
+            '如果解析里用字母指代选项（例如「故选 C」），重编号后字母含义会与原题不同。\n' +
+            '判题后的解析区会附上「原顺序」对照，请以对照为准。',
+          okText: '开启',
+          cancelText: '取消'
+        });
         if (!ok) return;
       }
       S.shuffleOptions = !S.shuffleOptions;
@@ -899,8 +985,15 @@
     $('#btn-main').addEventListener('click', onMain);
     $('#btn-submit-all').addEventListener('click', confirmFinish);
 
-    $('#btn-quit').addEventListener('click', () => {
-      if (!window.confirm('确定退出本次练习？当前作答进度将丢失。')) return;
+    $('#btn-quit').addEventListener('click', async () => {
+      const ok = await ask({
+        title: '退出本次练习？',
+        text: '当前作答进度将丢失，已作答的题目不会保留。',
+        okText: '退出练习',
+        cancelText: '继续作答',
+        danger: true
+      });
+      if (!ok) return;
       stopTimer();
       showView('upload');
     });
@@ -935,6 +1028,7 @@
 
   function bindKeyboard() {
     document.addEventListener('keydown', (e) => {
+      if (modalResolve) return; // 弹窗打开时，快捷键不生效
       if ($('#view-practice').classList.contains('is-hidden')) return;
       const tag = (e.target.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
@@ -977,6 +1071,7 @@
     bindUpload();
     bindPractice();
     bindResult();
+    bindModal();
     bindKeyboard();
     showView('upload');
   }

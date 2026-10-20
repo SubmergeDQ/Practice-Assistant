@@ -323,6 +323,19 @@ C. 无连接
 
 </main>
 
+<!-- ==================== 站点内确认弹窗（替代浏览器原生 confirm） ==================== -->
+<div class="modal is-hidden" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-text">
+  <div class="modal-mask" id="modal-mask"></div>
+  <div class="modal-card">
+    <h3 class="modal-title" id="modal-title">请确认</h3>
+    <p class="modal-text" id="modal-text"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-cancel" type="button">取消</button>
+      <button class="btn btn-primary" id="modal-ok" type="button">确定</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============================================================
      题库生成说明（原文，供下载）
      这段内容不参与渲染，仅作为下载文件的唯一数据源；
