@@ -225,6 +225,27 @@
     return list.filter((it) => it && it.file);
   }
 
+  // 题库列表里题型固定的展示顺序：选择题在前
+  const TYPE_BREAKDOWN = [['single', '单选'], ['multiple', '多选'], ['judge', '判断'], ['blank', '填空']];
+
+  /** 第一行总体量（共 N 题 · 满分），第二行题型分布 */
+  function onlineMeta(entry) {
+    const total = entry.count
+      ? '共 ' + entry.count + ' 题' + (entry.score ? ' · 满分 ' + entry.score + ' 分' : '')
+      : '';
+
+    let types = '';
+    if (entry.types && typeof entry.types === 'object') {
+      types = TYPE_BREAKDOWN
+        .filter(([key]) => Number(entry.types[key]) > 0)
+        .map(([key, label]) => label + ' ' + entry.types[key])
+        .join('，');
+    } else if (entry.desc) {
+      types = entry.desc; // 兼容只写了一句描述的旧清单
+    }
+    return { total: total, types: types };
+  }
+
   function renderOnlineList(items) {
     const box = $('#online-list');
     box.innerHTML = '';
@@ -238,13 +259,12 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'online-item';
-      const meta = [it.desc, it.count ? it.count + ' 题' : '', it.score ? '满分 ' + it.score + ' 分' : '']
-        .filter(Boolean)
-        .join(' · ');
+      const meta = onlineMeta(it);
       btn.innerHTML =
         '<span class="oi-main">' +
         '<span class="oi-name">' + esc(it.name || it.file) + '</span>' +
-        (meta ? '<span class="oi-meta">' + esc(meta) + '</span>' : '') +
+        (meta.total ? '<span class="oi-total">' + esc(meta.total) + '</span>' : '') +
+        (meta.types ? '<span class="oi-types">' + esc(meta.types) + '</span>' : '') +
         '</span><span class="oi-go">载入</span>';
       btn.addEventListener('click', () => loadOnlineBank(it, btn));
       box.appendChild(btn);

@@ -4,16 +4,16 @@
     {
       "name": "形势与政策（1）作业答案",
       "file": "2026-xingshi-zhengce.json",
-      "desc": "填空 10 · 单选 20 · 多选 20",
       "count": 50,
-      "score": 100
+      "score": 100,
+      "types": { "single": 20, "multiple": 20, "blank": 10 }
     },
     {
       "name": "2026 年秋复习题（沈娅班级）",
       "file": "2026-fall-shenya.json",
-      "desc": "单选 120 · 多选 120",
       "count": 240,
-      "score": 100
+      "score": 100,
+      "types": { "single": 120, "multiple": 120 }
     }
   ]
 }
