@@ -184,13 +184,6 @@ code {
 .btn-block { width: 100%; }
 .btn-sm { padding: 6px 12px; font-size: 13px; }
 
-.btn-guide {
-  background: #fff;
-  border-color: #b9cbf3;
-  color: var(--primary-d);
-}
-.btn-guide:hover { background: var(--primary-soft); border-color: var(--primary); }
-
 .btn-online {
   background: var(--primary-soft);
   border-color: #c3d3fb;
@@ -988,4 +981,15 @@ body.modal-open { overflow: hidden; }
   .option { padding: 12px 13px; }
   .sheet-cell { height: 36px; }
   .btn { padding: 10px 15px; }
+
+  /* 上传操作区：主行动独占一行，两个次要按钮均分，避免 2+1 的折行 */
+  .upload-actions { gap: 8px; }
+  .upload-actions .btn { min-height: 42px; }
+  .upload-actions .btn-online { flex: 1 1 100%; }
+  .upload-actions .btn-ghost {
+    flex: 1 1 calc(50% - 4px);
+    padding-left: 8px;
+    padding-right: 8px;
+    font-size: 13px;
+  }
 }
