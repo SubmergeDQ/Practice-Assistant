@@ -719,6 +719,13 @@
       download('题库模板.txt', window.QB_SAMPLES.txt, 'text/plain');
     });
 
+    $('#btn-dl-guide').addEventListener('click', () => {
+      const src = document.getElementById('guide-source');
+      if (!src) return;
+      const text = src.textContent.replace(/^\s*\n/, '').replace(/\s+$/, '\n');
+      download('题库生成说明.md', text, 'text/markdown');
+    });
+
     $$('input[name="mode"]').forEach((el) =>
       el.addEventListener('change', () => { if (el.checked) S.mode = el.value; })
     );

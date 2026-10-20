@@ -178,6 +178,13 @@ code {
 .btn-block { width: 100%; }
 .btn-sm { padding: 6px 12px; font-size: 13px; }
 
+.btn-guide {
+  background: #fff;
+  border-color: #b9cbf3;
+  color: var(--primary-d);
+}
+.btn-guide:hover { background: var(--primary-soft); border-color: var(--primary); }
+
 /* ---------------- 上传区 ---------------- */
 
 .dropzone {
@@ -199,6 +206,13 @@ code {
 .dz-hint { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
 
 .upload-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+.upload-hint {
+  margin-top: 10px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
 
 .notice {
   margin-top: 14px;
