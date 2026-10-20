@@ -142,6 +142,13 @@ code {
   align-items: start;
 }
 
+/* 左侧题库卡撑满整行高度，避免右侧设置面板较高时左边留下大片空白 */
+.upload-grid > .card:not(.settings) {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+
 .practice-body {
   display: grid;
   grid-template-columns: minmax(0, 1.62fr) minmax(250px, .85fr);
@@ -253,6 +260,12 @@ body.modal-open { overflow: hidden; }
   cursor: pointer;
   transition: all .18s ease;
   outline: none;
+  /* 跟随卡片高度伸缩，内容始终居中，卡片不会被拉成上重下空 */
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .dropzone:hover, .dropzone:focus-visible { border-color: var(--primary); background: #f4f8ff; }

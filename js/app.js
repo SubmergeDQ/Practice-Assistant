@@ -652,7 +652,7 @@
 
   function modeSummary() {
     const tags = [S.mode === 'instant' ? '每题提交后立即判题' : '全部作答后统一判题'];
-    const orderLabel = { random: '完全随机', byType: '按题型顺序' }[S.order];
+    const orderLabel = { random: '完全随机', byType: '按题型随机' }[S.order];
     if (orderLabel) tags.push(orderLabel);
     if (S.shuffleOptions) tags.push('选项乱序');
     return tags.join(' · ');
