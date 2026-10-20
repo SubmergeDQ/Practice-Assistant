@@ -774,4 +774,10 @@ code {
   .ring-wrap, .ring { width: 108px; height: 108px; }
   .result-stats { gap: 18px; }
   .kbd-tip { display: none; }
+
+  /* iOS 上输入框字号小于 16px 会在聚焦时强制放大页面 */
+  .blank-input { font-size: 16px; }
+  .option { padding: 12px 13px; }
+  .sheet-cell { height: 36px; }
+  .btn { padding: 10px 15px; }
 }

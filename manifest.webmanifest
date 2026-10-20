@@ -1,0 +1,19 @@
+{
+  "name": "练习助手",
+  "short_name": "练习助手",
+  "description": "上传题库文件即可刷题的网页版练习助手：支持单选、多选、判断、填空，自动判题并统计成绩。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6fb",
+  "theme_color": "#3d6bf5",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
