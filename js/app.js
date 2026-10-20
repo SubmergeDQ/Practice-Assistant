@@ -1163,22 +1163,40 @@
     syncSwitch();
   }
 
+  /** 退出练习：有进度时先确认，避免误触丢失作答 */
+  async function leavePractice() {
+    const ok = await ask({
+      title: '退出本次练习？',
+      text: '当前作答进度将丢失，已作答的题目不会保留。',
+      okText: '退出练习',
+      cancelText: '继续作答',
+      danger: true
+    });
+    if (!ok) return;
+    stopTimer();
+    showView('upload');
+  }
+
   function bindPractice() {
     $('#btn-prev').addEventListener('click', () => goTo(S.current - 1));
     $('#btn-main').addEventListener('click', onMain);
     $('#btn-submit-all').addEventListener('click', confirmFinish);
+    $('#btn-quit').addEventListener('click', leavePractice);
+  }
 
-    $('#btn-quit').addEventListener('click', async () => {
-      const ok = await ask({
-        title: '退出本次练习？',
-        text: '当前作答进度将丢失，已作答的题目不会保留。',
-        okText: '退出练习',
-        cancelText: '继续作答',
-        danger: true
-      });
-      if (!ok) return;
-      stopTimer();
-      showView('upload');
+  /** 顶栏品牌区：点击回到上传页 */
+  function bindHeader() {
+    $('#brand-home').addEventListener('click', () => {
+      if (modalResolve || onlineOpen) return; // 面板打开时不响应
+      if (!$('#view-practice').classList.contains('is-hidden')) {
+        leavePractice();
+        return;
+      }
+      if (!$('#view-result').classList.contains('is-hidden')) {
+        showView('upload');
+        return;
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
 
@@ -1260,6 +1278,7 @@
     bindResult();
     bindModal();
     bindOnline();
+    bindHeader();
     bindKeyboard();
     showView('upload');
   }

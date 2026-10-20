@@ -74,7 +74,30 @@ code {
   gap: 16px;
 }
 
-.brand { display: flex; align-items: center; gap: 11px; }
+/* 顶栏品牌区可点击（返回首页） */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+
+/* 触屏设备上避免 hover 态粘住 */
+@media (hover: hover) {
+  .brand:hover { background: #f4f7ff; }
+}
+
+.brand:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.brand:active .brand-mark { transform: scale(.96); }
 
 .brand-mark {
   width: 36px; height: 36px;
@@ -82,6 +105,7 @@ code {
   overflow: hidden;
   display: flex;
   box-shadow: 0 4px 12px rgba(61, 107, 245, .3);
+  transition: transform .15s ease;
 }
 
 .brand-mark img { width: 100%; height: 100%; display: block; }
