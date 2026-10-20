@@ -999,11 +999,15 @@
     });
   }
 
+  // 标签上的 data-filter 用「未作答」，而 statusOf() 内部记为 skip，这里统一映射
+  const FILTER_ALIAS = { unanswered: 'skip' };
+
   function bindResult() {
     $('#result-tabs').addEventListener('click', (e) => {
       const tab = e.target.closest ? e.target.closest('.tab') : null;
       if (!tab) return;
-      S.filter = tab.getAttribute('data-filter');
+      const raw = tab.getAttribute('data-filter');
+      S.filter = FILTER_ALIAS[raw] || raw;
       $$('#result-tabs .tab').forEach((t) => t.classList.toggle('is-active', t === tab));
       renderReviewList();
     });
