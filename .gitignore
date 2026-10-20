@@ -1,0 +1,27 @@
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+
+# WorkBuddy 工作目录
+.workbuddy/
+
+# 截图 / 测试产生的临时产物（Chrome 用户数据目录、临时页面）
+.p1/
+.p2/
+.p3/
+.q1/
+.q2/
+.q3/
+.r1/
+.r2/
+.r3/
+.cb*/
+docs_tmp/
+_p*.html
+_s*.png
+
+# 依赖与构建（本项目零依赖，仅作兜底）
+node_modules/
+dist/

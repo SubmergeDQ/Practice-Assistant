@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>练习助手 · 题库练习与成绩统计</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">练</div>
+      <div class="brand-text">
+        <strong>练习助手</strong>
+        <span>上传题库 · 在线刷题 · 成绩统计</span>
+      </div>
+    </div>
+    <ol class="steps" id="steps">
+      <li class="step is-active" data-step="1"><i>1</i>上传题库</li>
+      <li class="step" data-step="2"><i>2</i>答题</li>
+      <li class="step" data-step="3"><i>3</i>成绩</li>
+    </ol>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ==================== 1. 上传题库 ==================== -->
+  <section id="view-upload" class="view">
+    <div class="hero">
+      <h1>上传题库，开始练习</h1>
+      <p>支持 <b>单选题</b>、<b>多选题</b>、<b>判断题</b>、<b>填空题</b> 四种题型。题库文件需包含题目与答案，解析可选，有解析时会在判题后一并展示。</p>
+    </div>
+
+    <div class="upload-grid">
+      <div class="card">
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="选择题库文件">
+          <svg class="dz-icon" viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M24 32V11m0 0-8 8m8-8 8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 30v3.5A6.5 6.5 0 0 0 14.5 40h19a6.5 6.5 0 0 0 6.5-6.5V30" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+          </svg>
+          <p class="dz-title">点击选择文件，或把文件拖到这里</p>
+          <p class="dz-hint">支持 .json 与 .txt，自动识别 UTF-8 / GBK 编码</p>
+          <input type="file" id="file-input" accept=".json,.txt,.text,application/json,text/plain" hidden />
+        </div>
+
+        <div class="upload-actions">
+          <button class="btn btn-ghost" id="btn-load-sample" type="button">载入示例题库</button>
+          <button class="btn btn-ghost" id="btn-dl-json" type="button">下载 JSON 模板</button>
+          <button class="btn btn-ghost" id="btn-dl-txt" type="button">下载 TXT 模板</button>
+        </div>
+
+        <div class="notice is-hidden" id="upload-notice"></div>
+
+        <div class="bank-card is-hidden" id="bank-card"></div>
+      </div>
+
+      <aside class="card settings">
+        <h2 class="card-title">练习设置</h2>
+
+        <div class="field">
+          <div class="field-label">判题显示方式</div>
+          <label class="choice">
+            <input type="radio" name="mode" value="instant" checked />
+            <span class="choice-body">
+              <span class="choice-title">每题提交后立即判题</span>
+              <span class="choice-desc">提交本题即显示对错、正确答案与解析</span>
+            </span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="mode" value="defer" />
+            <span class="choice-body">
+              <span class="choice-title">全部作答后统一判题</span>
+              <span class="choice-desc">答题过程中不显示对错，交卷后统一展示</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="field">
+          <div class="field-label">出题顺序</div>
+          <label class="choice choice-sm">
+            <input type="radio" name="order" value="seq" checked />
+            <span class="choice-body"><span class="choice-title">按题库顺序</span></span>
+          </label>
+          <label class="choice choice-sm">
+            <input type="radio" name="order" value="random" />
+            <span class="choice-body"><span class="choice-title">随机打乱</span></span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="btn-start" disabled>开始练习</button>
+        <p class="settings-tip">未选择题库时按钮不可用；可先载入示例题库体验流程。</p>
+      </aside>
+    </div>
+
+    <details class="card doc">
+      <summary>题库格式说明（点击展开）</summary>
+      <div class="doc-body">
+        <p>题库支持 <b>JSON</b> 与 <b>TXT</b> 两种格式，任选其一。JSON 结构严谨、字段可扩展，推荐使用；TXT 便于手写，按固定关键字排版即可。</p>
+
+        <h4>一、JSON 格式</h4>
+        <p>顶层可以是对象（含 <code>title</code> 与 <code>questions</code>），也可以直接是题目数组。</p>
+<pre>{
+  "title": "计算机网络基础",
+  "questions": [
+    {
+      "type": "single",
+      "stem": "HTTP 协议默认使用的端口号是？",
+      "options": ["A. 21", "B. 25", "C. 80", "D. 443"],
+      "answer": "C",
+      "explanation": "HTTP 默认端口 80，HTTPS 为 443。",
+      "score": 5
+    },
+    {
+      "type": "multiple",
+      "stem": "下列属于 TCP 特点的有？",
+      "options": { "A": "面向连接", "B": "可靠传输", "C": "无连接" },
+      "answer": ["A", "B"],
+      "score": 10
+    },
+    {
+      "type": "judge",
+      "stem": "UDP 是无连接协议。",
+      "answer": true
+    },
+    {
+      "type": "blank",
+      "stem": "IPv4 地址长度为____位。",
+      "answer": "32",
+      "explanation": "IPv4 使用 32 位地址。"
+    }
+  ]
+}</pre>
+
+        <h4>二、TXT 格式</h4>
+        <p>用 <code>[单选]</code> <code>[多选]</code> <code>[判断]</code> <code>[填空]</code> 声明题型，每题以「答案：」结束，题与题之间用空行分隔。</p>
+<pre># 题库标题写在这里
+[单选]
+1. HTTP 协议默认使用的端口号是？
+A. 21
+B. 25
+C. 80
+D. 443
+答案：C
+分值：5
+解析：HTTP 默认端口 80，HTTPS 为 443。
+
+[多选]
+2. 下列属于 TCP 特点的有？
+A. 面向连接
+B. 可靠传输
+C. 无连接
+答案：AB
+分值：10
+
+[判断]
+3. UDP 是无连接协议。
+答案：正确
+
+[填空]
+4. IPv4 地址长度为____位，IPv6 为____位。
+答案：32||128</pre>
+
+        <h4>三、字段对照表</h4>
+        <div class="table-wrap">
+          <table class="doc-table">
+            <thead><tr><th>字段</th><th>必填</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>type</td><td>是</td><td>single / multiple / judge / blank，也可写「单选题」「多选题」「判断题」「填空题」</td></tr>
+              <tr><td>stem</td><td>是</td><td>题干文本</td></tr>
+              <tr><td>options</td><td>选择题必填</td><td>数组或对象；元素可写 "A. 内容"，也可直接写内容（自动按 A/B/C 编号）</td></tr>
+              <tr><td>answer</td><td>是</td><td>单选："C"；多选："AC" 或 ["A","C"]；判断：true/false 或「正确/错误」；填空："答案" 或 ["答案1","答案2"]</td></tr>
+              <tr><td>explanation</td><td>否</td><td>解析文本，无解析时不显示解析区</td></tr>
+              <tr><td>score</td><td>否</td><td>本题分值，缺省为 5 分</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="doc-tip">填空题多个空之间用 <code>||</code> 分隔；同一个空的多个可接受答案用 <code>|</code> 分隔，例如 <code>答案：IP地址|IP 地址</code>。完整说明见项目根目录的 <code>README.md</code>。</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ==================== 2. 答题 ==================== -->
+  <section id="view-practice" class="view is-hidden">
+    <div class="card practice-head">
+      <div class="ph-left">
+        <h2 id="practice-title">—</h2>
+        <p class="ph-meta">
+          <span id="practice-meta">共 0 题</span>
+          <span class="dot-sep">·</span>
+          <span id="mode-label">每题提交后立即判题</span>
+        </p>
+      </div>
+      <div class="ph-right">
+        <div class="timer"><span>用时</span><b id="timer">00:00</b></div>
+        <button class="btn btn-ghost btn-sm" id="btn-quit" type="button">退出</button>
+      </div>
+    </div>
+
+    <div class="progress-line">
+      <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+      <span class="progress-text" id="progress-text">已答 0 / 0</span>
+    </div>
+
+    <div class="practice-body">
+      <div class="card question-card">
+        <div class="q-head">
+          <span class="badge" id="q-type">单选题</span>
+          <span class="q-index" id="q-index">第 1 题 / 共 1 题</span>
+          <span class="q-score" id="q-score">5 分</span>
+        </div>
+        <div class="q-stem" id="q-stem"></div>
+        <div class="q-body" id="q-body"></div>
+        <div class="feedback is-hidden" id="feedback"></div>
+        <div class="q-actions">
+          <button class="btn btn-ghost" id="btn-prev" type="button">上一题</button>
+          <button class="btn btn-primary" id="btn-main" type="button">提交本题</button>
+        </div>
+        <p class="kbd-tip">快捷键：A–H 选择选项 · Enter 提交 / 下一题 · ← → 切换题目</p>
+      </div>
+
+      <aside class="card sheet">
+        <h3 class="card-title">答题卡</h3>
+        <div class="sheet-grid" id="sheet-grid"></div>
+        <div class="sheet-legend">
+          <span><i class="dot dot-cur"></i>当前</span>
+          <span><i class="dot dot-done"></i>已答</span>
+          <span><i class="dot dot-ok"></i>正确</span>
+          <span><i class="dot dot-bad"></i>错误</span>
+        </div>
+        <div class="sheet-stat" id="sheet-stat">已答 0 / 0</div>
+        <button class="btn btn-primary btn-block" id="btn-submit-all" type="button">交卷</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ==================== 3. 成绩 ==================== -->
+  <section id="view-result" class="view is-hidden">
+    <div class="card result-hero">
+      <div class="ring-wrap">
+        <svg viewBox="0 0 130 130" class="ring" aria-hidden="true">
+          <circle class="ring-bg" cx="65" cy="65" r="54"></circle>
+          <circle class="ring-fill" id="ring-fill" cx="65" cy="65" r="54"></circle>
+        </svg>
+        <div class="ring-text">
+          <strong id="ring-score">0</strong>
+          <span id="ring-total">/ 100 分</span>
+        </div>
+      </div>
+      <div class="result-main">
+        <h2 id="result-title">练习完成</h2>
+        <p class="result-sub" id="result-sub">—</p>
+        <div class="result-stats">
+          <div class="rstat"><span>正确率</span><b id="rs-acc">0%</b></div>
+          <div class="rstat"><span>正确 / 错误 / 未答</span><b id="rs-count">0 / 0 / 0</b></div>
+          <div class="rstat"><span>用时</span><b id="rs-time">00:00</b></div>
+        </div>
+      </div>
+      <div class="result-actions">
+        <button class="btn btn-primary" id="btn-retry-wrong" type="button">重做错题</button>
+        <button class="btn btn-ghost" id="btn-restart" type="button">重新练习</button>
+        <button class="btn btn-ghost" id="btn-newbank" type="button">更换题库</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="tabs" id="result-tabs">
+        <button class="tab is-active" data-filter="all" type="button">全部 <i id="tab-all">0</i></button>
+        <button class="tab" data-filter="wrong" type="button">错题 <i id="tab-wrong">0</i></button>
+        <button class="tab" data-filter="unanswered" type="button">未作答 <i id="tab-unanswered">0</i></button>
+        <button class="tab" data-filter="correct" type="button">正确 <i id="tab-correct">0</i></button>
+      </div>
+
+      <details class="recap">
+        <summary>答题记录表</summary>
+        <div class="table-wrap">
+          <table class="record-table" id="record-table"></table>
+        </div>
+      </details>
+
+      <div class="review-list" id="review-list"></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="js/parser.js"></script>
+<script src="js/sample-data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
