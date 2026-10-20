@@ -192,24 +192,35 @@
     return !!(r && r.graded);
   }
 
-  function optTextOf(q, key) {
+  /** 该选项在原题里的字母（打乱后与当前字母不同才返回） */
+  function originKeyOf(q, key) {
+    if (!q.originOptions || q.type === 'judge' || q.type === 'blank') return '';
+    const opt = q.options.filter((x) => x.key === key)[0];
+    if (!opt) return '';
+    const hit = q.originOptions.filter((x) => x.text === opt.text)[0];
+    return hit && hit.key !== key ? hit.key : '';
+  }
+
+  function optTextOf(q, key, withOrigin) {
     if (q.type === 'judge') return key === 'T' ? '正确' : '错误';
     const o = q.options.filter((x) => x.key === key)[0];
-    return o ? key + '. ' + o.text : key;
+    if (!o) return key;
+    const origin = withOrigin ? originKeyOf(q, key) : '';
+    return key + '. ' + o.text + (origin ? '（原 ' + origin + '）' : '');
   }
 
-  function keysText(q, keys) {
+  function keysText(q, keys, withOrigin) {
     if (!keys || !keys.length) return '';
-    return keys.slice().sort().map((k) => optTextOf(q, k)).join('；');
+    return keys.slice().sort().map((k) => optTextOf(q, k, withOrigin)).join('；');
   }
 
-  function correctText(q) {
+  function correctText(q, withOrigin) {
     if (q.type === 'blank') {
       return q.answers
         .map((alts, i) => (q.answers.length > 1 ? '第' + (i + 1) + '空 ' : '') + alts.join(' / '))
         .join('；');
     }
-    return keysText(q, q.answers);
+    return keysText(q, q.answers, withOrigin);
   }
 
   function givenText(q, resp) {
@@ -222,6 +233,28 @@
     }
     if (q.type === 'multiple') return keysText(q, resp || []);
     return resp ? keysText(q, [resp]) : '';
+  }
+
+  /** 解析文本里是否用字母指代选项（如「故选 C」「A、B 两项」） */
+  function mentionsOptionLetters(text) {
+    return /(?:^|[^A-Za-z])[A-H]{1,4}(?:$|[^A-Za-z])/.test(String(text == null ? '' : text));
+  }
+
+  /**
+   * 选项被打乱过、且解析里用字母指代选项时，按原顺序列出选项。
+   * 解析是按原题顺序写的，重编号后必须给一份原始对照才不会读错。
+   */
+  function originOrderHTML(q) {
+    if (!q.originOptions || !q.originOptions.length) return '';
+    if (!q.explanation || !mentionsOptionLetters(q.explanation)) return '';
+    const items = q.originOptions.map((o) => o.key + '. ' + o.text).join('　');
+    return (
+      '<div class="origin-order">' +
+      '<span class="k">原顺序</span>' +
+      '<span class="v">' + esc(items) + '</span>' +
+      '</div>' +
+      '<p class="origin-tip">本题选项已打乱并重新编号，解析里提到的 A/B/C/D 以「原顺序」为准。</p>'
+    );
   }
 
   function buildOptions(q, i) {
@@ -317,10 +350,11 @@
       '<span class="fb-score">本题得分 ' + fmtNum(r.score) + ' / ' + fmtNum(q.score) + '</span>' +
       '</div>';
 
-    html += '<div class="fb-line"><span class="k">正确答案</span><b>' + esc(correctText(q)) + '</b></div>';
+    html += '<div class="fb-line"><span class="k">正确答案</span><b>' + esc(correctText(q, true)) + '</b></div>';
     const given = givenText(q, S.responses[i]);
     if (given) html += '<div class="fb-line"><span class="k">你的答案</span><b>' + esc(given) + '</b></div>';
     if (q.explanation) {
+      html += originOrderHTML(q);
       html += '<div class="fb-exp"><span class="k">解析</span><p>' + esc(q.explanation) + '</p></div>';
     }
 
@@ -504,17 +538,24 @@
       options: (q.options || []).map((o) => ({ key: o.key, text: o.text })),
       answers: q.type === 'blank' ? q.answers.map((alts) => alts.slice()) : q.answers.slice(),
       explanation: q.explanation,
-      score: q.score
+      score: q.score,
+      // 打乱前的原始顺序，仅用于解析对照，不参与判题
+      originOptions: q.originOptions ? q.originOptions.map((o) => ({ key: o.key, text: o.text })) : null
     };
   }
 
   /**
    * 打乱单题的选项顺序，并按新顺序重新编号 A/B/C…
    * 答案字母同步映射，保证判题结果不变。判断题与填空题不动。
+   * 原始顺序会留在 originOptions 里，供解析对照使用。
    */
   function shuffleQuestionOptions(q) {
     if (q.type !== 'single' && q.type !== 'multiple') return;
     if (!q.options || q.options.length < 2) return;
+
+    if (!q.originOptions) {
+      q.originOptions = q.options.map((o) => ({ key: o.key, text: o.text }));
+    }
 
     shuffle(q.options);
 
@@ -565,10 +606,19 @@
     return qs;
   }
 
+  /** 取回题库里的原始题目，避免在已打乱、已重编号的副本上再操作一次 */
+  function sourceQuestion(q) {
+    if (!S.bank || !S.bank.questions) return q;
+    for (let i = 0; i < S.bank.questions.length; i++) {
+      if (S.bank.questions[i].id === q.id) return S.bank.questions[i];
+    }
+    return q;
+  }
+
   function startPractice(list, label) {
     if (!list || !list.length) return;
 
-    S.questions = arrangeQuestions(list);
+    S.questions = arrangeQuestions(list.map(sourceQuestion));
 
     S.responses = S.questions.map(P.makeEmptyResponse);
     S.results = S.questions.map(() => null);
@@ -644,9 +694,10 @@
       '<div><span class="k">你的答案</span><span class="v ' + (st === 'correct' ? 'ok' : st === 'skip' ? 'skip' : 'bad') + '">' +
       (given ? esc(given) : '未作答') +
       '</span></div>' +
-      '<div><span class="k">正确答案</span><span class="v ok">' + esc(correctText(q)) + '</span></div>' +
+      '<div><span class="k">正确答案</span><span class="v ok">' + esc(correctText(q, true)) + '</span></div>' +
       '</div>';
     if (q.explanation) {
+      html += originOrderHTML(q);
       html += '<div class="review-exp"><span class="k">解析</span><p>' + esc(q.explanation) + '</p></div>';
     }
     html += '</article>';
@@ -802,9 +853,16 @@
 
     // 选项乱序是独立开关，与出题顺序互不影响
     const switchEl = $('#btn-shuffle-options');
+    const switchDesc = $('#switch-desc');
     const syncSwitch = () => {
       switchEl.classList.toggle('is-on', S.shuffleOptions);
       switchEl.setAttribute('aria-checked', S.shuffleOptions ? 'true' : 'false');
+      if (switchDesc) {
+        switchDesc.textContent = S.shuffleOptions
+          ? '解析字母按原顺序，判题后附对照'
+          : '单选、多选的选项重排并重新编号';
+        switchDesc.classList.toggle('is-warn', S.shuffleOptions);
+      }
     };
 
     $$('input[name="order"]').forEach((el) =>
@@ -812,6 +870,14 @@
     );
 
     switchEl.addEventListener('click', () => {
+      if (!S.shuffleOptions) {
+        const ok = window.confirm(
+          '开启后，每道题的选项会重新排列并重新编号 A/B/C/D。\n\n' +
+          '如果解析里用字母指代选项（例如「故选 C」），重编号后字母含义会与原题不同。' +
+          '判题后的解析区会附上一份「原顺序」对照，请以对照为准。\n\n确定开启吗？'
+        );
+        if (!ok) return;
+      }
       S.shuffleOptions = !S.shuffleOptions;
       syncSwitch();
     });

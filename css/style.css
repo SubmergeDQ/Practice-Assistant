@@ -302,6 +302,7 @@ code {
 .switch-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .switch-title { font-size: 13.5px; font-weight: 550; color: var(--ink); }
 .switch-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.switch-desc.is-warn { color: var(--warn); }
 
 .switch {
   flex: none;
@@ -587,6 +588,36 @@ code {
 
 .fb-exp { margin-top: 6px; display: flex; gap: 8px; font-size: 13.5px; }
 .fb-exp p { white-space: pre-wrap; color: var(--ink-2); flex: 1; }
+
+/* 选项被打乱时，解析前的原顺序对照 */
+.origin-order {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 11px;
+  border: 1px dashed #cdd9ec;
+  border-radius: 9px;
+  background: #fff;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+.origin-order .k {
+  flex: none;
+  min-width: 64px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.origin-order .v { flex: 1; min-width: 0; }
+
+.origin-tip {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+}
 
 .q-actions {
   display: flex;
