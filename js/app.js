@@ -65,8 +65,8 @@
     results: [],         // { graded, correct, score }
     current: 0,
     mode: 'instant',     // instant | defer
-    order: 'seq',
-    shuffleOptions: false, // 随机打乱题目的同时，是否也打乱每题选项顺序
+    order: 'seq',          // seq | random | byType
+    shuffleOptions: false, // 选项顺序是否随机（独立开关，不影响出题顺序）
     startTs: 0,
     elapsed: 0,
     timerId: null,
@@ -527,20 +527,48 @@
     q.answers = q.answers.map((k) => oldToNew[k] || k);
   }
 
-  function modeSummary(shuffleOpt) {
+  function modeSummary() {
     const tags = [S.mode === 'instant' ? '每题提交后立即判题' : '全部作答后统一判题'];
-    if (S.order === 'random') tags.push(shuffleOpt ? '题目随机 · 选项乱序' : '题目随机');
+    const orderLabel = { random: '完全随机', byType: '按题型顺序' }[S.order];
+    if (orderLabel) tags.push(orderLabel);
+    if (S.shuffleOptions) tags.push('选项乱序');
     return tags.join(' · ');
+  }
+
+  /**
+   * 按当前设置排列本轮题目：先深拷贝（打乱不污染原题库），
+   * 再按出题顺序重排，最后按需打乱每题选项。
+   */
+  function arrangeQuestions(list) {
+    const cloned = list.map(cloneQuestion);
+    let qs;
+
+    if (S.order === 'random') {
+      qs = shuffle(cloned);
+    } else if (S.order === 'byType') {
+      // 题型固定顺序：单选 → 多选 → 判断 → 填空（选择题优先），同题型内随机
+      const rank = { single: 0, multiple: 1, judge: 2, blank: 3 };
+      const buckets = [[], [], [], []];
+      cloned.forEach((q) => {
+        const r = rank[q.type];
+        buckets[r == null ? 3 : r].push(q);
+      });
+      qs = [];
+      buckets.forEach((bucket) => {
+        shuffle(bucket).forEach((q) => qs.push(q));
+      });
+    } else {
+      qs = cloned;
+    }
+
+    if (S.shuffleOptions) qs.forEach(shuffleQuestionOptions);
+    return qs;
   }
 
   function startPractice(list, label) {
     if (!list || !list.length) return;
 
-    // 深拷贝一份，避免打乱选项时污染原始题库（「重新练习」还要用）
-    const shuffleOpt = S.order === 'random' && S.shuffleOptions;
-    S.questions = list.map(cloneQuestion);
-    if (S.order === 'random') shuffle(S.questions);
-    if (shuffleOpt) S.questions.forEach(shuffleQuestionOptions);
+    S.questions = arrangeQuestions(list);
 
     S.responses = S.questions.map(P.makeEmptyResponse);
     S.results = S.questions.map(() => null);
@@ -549,7 +577,7 @@
 
     $('#practice-title').textContent = label || (S.bank ? S.bank.title : '练习');
     $('#practice-meta').textContent = '共 ' + S.questions.length + ' 题';
-    $('#mode-label').textContent = modeSummary(shuffleOpt);
+    $('#mode-label').textContent = modeSummary();
 
     S.startTs = Date.now();
     startTimer();
@@ -772,24 +800,21 @@
       el.addEventListener('change', () => { if (el.checked) S.mode = el.value; })
     );
 
-    // 选项乱序是「随机打乱」的附属项，只在随机出题时可用
-    const chkShuffleOpts = $('#chk-shuffle-options');
-    const choiceShuffleOpts = $('#choice-shuffle-options');
-    const syncSubOption = () => {
-      const on = S.order === 'random';
-      chkShuffleOpts.disabled = !on;
-      choiceShuffleOpts.classList.toggle('is-off', !on);
+    // 选项乱序是独立开关，与出题顺序互不影响
+    const switchEl = $('#btn-shuffle-options');
+    const syncSwitch = () => {
+      switchEl.classList.toggle('is-on', S.shuffleOptions);
+      switchEl.setAttribute('aria-checked', S.shuffleOptions ? 'true' : 'false');
     };
 
     $$('input[name="order"]').forEach((el) =>
-      el.addEventListener('change', () => {
-        if (!el.checked) return;
-        S.order = el.value;
-        syncSubOption();
-      })
+      el.addEventListener('change', () => { if (el.checked) S.order = el.value; })
     );
 
-    chkShuffleOpts.addEventListener('change', () => { S.shuffleOptions = chkShuffleOpts.checked; });
+    switchEl.addEventListener('click', () => {
+      S.shuffleOptions = !S.shuffleOptions;
+      syncSwitch();
+    });
 
     $('#btn-start').addEventListener('click', () => {
       if (!S.bank || !S.bank.questions.length) return;
@@ -797,11 +822,10 @@
       const checkedOrder = $('input[name="order"]:checked');
       S.mode = checkedMode ? checkedMode.value : 'instant';
       S.order = checkedOrder ? checkedOrder.value : 'seq';
-      S.shuffleOptions = chkShuffleOpts.checked;
       startPractice(S.bank.questions, S.bank.title);
     });
 
-    syncSubOption();
+    syncSwitch();
   }
 
   function bindPractice() {

@@ -288,37 +288,51 @@ code {
 .choice:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
 .choice-sm { padding: 8px 12px; margin-bottom: 6px; }
 
-/* 附属项：从属于上一项，用折线标出层级 */
-.sub-choice {
+/* 开关行：选项顺序随机 */
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 13px;
+  margin-bottom: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.switch-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.switch-title { font-size: 13.5px; font-weight: 550; color: var(--ink); }
+.switch-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+.switch {
+  flex: none;
+  width: 48px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 99px;
+  background: #d7dfec;
+  cursor: pointer;
   position: relative;
-  margin-left: 20px;
-  margin-top: 2px;
+  transition: background .18s ease;
 }
 
-.sub-choice::before {
-  content: "";
+.switch-knob {
   position: absolute;
-  left: -12px;
-  top: -9px;
-  width: 11px;
-  height: 24px;
-  border-left: 1.5px solid var(--line);
-  border-bottom: 1.5px solid var(--line);
-  border-bottom-left-radius: 7px;
-  pointer-events: none;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(20, 32, 60, .24);
+  transition: transform .18s ease;
 }
 
-.sub-choice .choice-desc { margin-top: 2px; }
-
-/* 用 .choice 提权，压过 .choice:has(input:checked) 的选中配色 */
-.choice.sub-choice.is-off {
-  cursor: not-allowed;
-  background: #fbfcfe;
-  border-color: var(--line);
-}
-.choice.sub-choice.is-off:hover { background: #fbfcfe; border-color: var(--line); }
-.choice.sub-choice.is-off .choice-title { color: var(--muted); }
-.choice.sub-choice.is-off .choice-desc { color: #aab4c4; }
+.switch.is-on { background: var(--primary); }
+.switch.is-on .switch-knob { transform: translateX(20px); }
+.switch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.switch:hover { background: #c8d2e4; }
+.switch.is-on:hover { background: var(--primary-d); }
 
 .settings-tip { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.5; }
 
