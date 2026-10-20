@@ -132,6 +132,14 @@
     }
 
     $('#btn-start').disabled = bank.questions.length === 0;
+
+    // 窄屏（手机）上题库卡片在首屏之外，解析完成后滚动过去，避免用户以为没反应
+    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
+      setTimeout(() => {
+        const card = $('#bank-card');
+        if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 60);
+    }
   }
 
   function loadFile(file) {
