@@ -568,7 +568,7 @@ body.modal-open { overflow: hidden; }
 .opt-mark {
   flex: none;
   width: 22px; height: 22px;
-  border-radius: 7px;
+  border-radius: 50%;
   background: #f1f4fa;
   color: #5b6a80;
   font-size: 12.5px;
@@ -579,7 +579,10 @@ body.modal-open { overflow: hidden; }
 }
 
 .opt-text { flex: 1; word-break: break-word; }
-.options.is-multi .opt-mark { border-radius: 6px; }
+
+/* 多选保持方形：圆圈=单选、方块=多选，形状即选几个的提示 */
+.options.is-multi .opt-mark,
+.review-opts.is-multi .opt-mark { border-radius: 6px; }
 
 .option.is-selected { border-color: var(--primary); background: var(--primary-soft); }
 .option.is-selected .opt-mark { background: var(--primary); color: #fff; }

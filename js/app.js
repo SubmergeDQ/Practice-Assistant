@@ -731,7 +731,7 @@
   function reviewOptionsHTML(q, resp) {
     if (q.type === 'blank') return '';
     return (
-      '<div class="review-opts">' +
+      '<div class="review-opts' + (q.type === 'multiple' ? ' is-multi' : '') + '">' +
       q.options
         .map((o) => {
           const isAns = q.answers.indexOf(o.key) >= 0;
