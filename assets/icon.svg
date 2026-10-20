@@ -1,11 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="练习助手">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4b7bff"/>
+      <stop offset="0" stop-color="#5b8cff"/>
       <stop offset="1" stop-color="#2f57cf"/>
     </linearGradient>
+    <linearGradient id="badge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3ddba0"/>
+      <stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef3ff"/>
+    </linearGradient>
   </defs>
+
+  <!-- 底：圆角方形 -->
   <rect width="512" height="512" rx="116" fill="url(#bg)"/>
-  <path d="M150 266l74 74 140-146" fill="none" stroke="#ffffff" stroke-width="44"
+  <path d="M0 116C0 52 52 0 116 0h280c64 0 116 52 116 116v46c-88-58-206-86-336-64C127 108 63 132 0 168z"
+        fill="#ffffff" opacity=".08"/>
+
+  <!-- 答题卡 -->
+  <rect x="112" y="96" width="288" height="300" rx="40" fill="url(#paper)"/>
+
+  <!-- 题目文字条 -->
+  <rect x="166" y="160" width="180" height="24" rx="12" fill="#c6d5f5"/>
+  <rect x="166" y="212" width="112" height="24" rx="12" fill="#dbe5f8"/>
+
+  <!-- 对勾徽章 -->
+  <circle cx="316" cy="312" r="82" fill="url(#badge)" stroke="#ffffff" stroke-width="14"/>
+  <path d="M282 314l24 26 46-52" fill="none" stroke="#ffffff" stroke-width="26"
         stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

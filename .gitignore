@@ -25,3 +25,4 @@ _s*.png
 # 依赖与构建（本项目零依赖，仅作兜底）
 node_modules/
 dist/
+.tools/

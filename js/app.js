@@ -66,6 +66,7 @@
     current: 0,
     mode: 'instant',     // instant | defer
     order: 'seq',
+    shuffleOptions: false, // 随机打乱题目的同时，是否也打乱每题选项顺序
     startTs: 0,
     elapsed: 0,
     timerId: null,
@@ -493,11 +494,54 @@
     showView('result');
   }
 
+  /** 练习用的题目副本：选项与答案都独立一份，便于单独打乱 */
+  function cloneQuestion(q) {
+    return {
+      id: q.id,
+      no: q.no,
+      type: q.type,
+      stem: q.stem,
+      options: (q.options || []).map((o) => ({ key: o.key, text: o.text })),
+      answers: q.type === 'blank' ? q.answers.map((alts) => alts.slice()) : q.answers.slice(),
+      explanation: q.explanation,
+      score: q.score
+    };
+  }
+
+  /**
+   * 打乱单题的选项顺序，并按新顺序重新编号 A/B/C…
+   * 答案字母同步映射，保证判题结果不变。判断题与填空题不动。
+   */
+  function shuffleQuestionOptions(q) {
+    if (q.type !== 'single' && q.type !== 'multiple') return;
+    if (!q.options || q.options.length < 2) return;
+
+    shuffle(q.options);
+
+    const oldToNew = {}; // 原字母 → 新字母
+    q.options.forEach((opt, i) => {
+      const newKey = String.fromCharCode(65 + i);
+      oldToNew[opt.key] = newKey;
+      opt.key = newKey;
+    });
+    q.answers = q.answers.map((k) => oldToNew[k] || k);
+  }
+
+  function modeSummary(shuffleOpt) {
+    const tags = [S.mode === 'instant' ? '每题提交后立即判题' : '全部作答后统一判题'];
+    if (S.order === 'random') tags.push(shuffleOpt ? '题目随机 · 选项乱序' : '题目随机');
+    return tags.join(' · ');
+  }
+
   function startPractice(list, label) {
     if (!list || !list.length) return;
 
-    S.questions = list.slice();
+    // 深拷贝一份，避免打乱选项时污染原始题库（「重新练习」还要用）
+    const shuffleOpt = S.order === 'random' && S.shuffleOptions;
+    S.questions = list.map(cloneQuestion);
     if (S.order === 'random') shuffle(S.questions);
+    if (shuffleOpt) S.questions.forEach(shuffleQuestionOptions);
+
     S.responses = S.questions.map(P.makeEmptyResponse);
     S.results = S.questions.map(() => null);
     S.current = 0;
@@ -505,7 +549,7 @@
 
     $('#practice-title').textContent = label || (S.bank ? S.bank.title : '练习');
     $('#practice-meta').textContent = '共 ' + S.questions.length + ' 题';
-    $('#mode-label').textContent = S.mode === 'instant' ? '每题提交后立即判题' : '全部作答后统一判题';
+    $('#mode-label').textContent = modeSummary(shuffleOpt);
 
     S.startTs = Date.now();
     startTimer();
@@ -717,16 +761,6 @@
 
     $('#btn-load-sample').addEventListener('click', loadSample);
 
-    $('#btn-dl-json').addEventListener('click', () => {
-      if (!window.QB_SAMPLES) return;
-      download('题库模板.json', JSON.stringify(window.QB_SAMPLES.json, null, 2), 'application/json');
-    });
-
-    $('#btn-dl-txt').addEventListener('click', () => {
-      if (!window.QB_SAMPLES) return;
-      download('题库模板.txt', window.QB_SAMPLES.txt, 'text/plain');
-    });
-
     $('#btn-dl-guide').addEventListener('click', () => {
       const src = document.getElementById('guide-source');
       if (!src) return;
@@ -737,9 +771,25 @@
     $$('input[name="mode"]').forEach((el) =>
       el.addEventListener('change', () => { if (el.checked) S.mode = el.value; })
     );
+
+    // 选项乱序是「随机打乱」的附属项，只在随机出题时可用
+    const chkShuffleOpts = $('#chk-shuffle-options');
+    const choiceShuffleOpts = $('#choice-shuffle-options');
+    const syncSubOption = () => {
+      const on = S.order === 'random';
+      chkShuffleOpts.disabled = !on;
+      choiceShuffleOpts.classList.toggle('is-off', !on);
+    };
+
     $$('input[name="order"]').forEach((el) =>
-      el.addEventListener('change', () => { if (el.checked) S.order = el.value; })
+      el.addEventListener('change', () => {
+        if (!el.checked) return;
+        S.order = el.value;
+        syncSubOption();
+      })
     );
+
+    chkShuffleOpts.addEventListener('change', () => { S.shuffleOptions = chkShuffleOpts.checked; });
 
     $('#btn-start').addEventListener('click', () => {
       if (!S.bank || !S.bank.questions.length) return;
@@ -747,8 +797,11 @@
       const checkedOrder = $('input[name="order"]:checked');
       S.mode = checkedMode ? checkedMode.value : 'instant';
       S.order = checkedOrder ? checkedOrder.value : 'seq';
+      S.shuffleOptions = chkShuffleOpts.checked;
       startPractice(S.bank.questions, S.bank.title);
     });
+
+    syncSubOption();
   }
 
   function bindPractice() {

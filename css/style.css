@@ -79,13 +79,12 @@ code {
 .brand-mark {
   width: 36px; height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #4b7bff, #2f57cf);
-  color: #fff;
-  font-weight: 700;
-  font-size: 17px;
-  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  display: flex;
   box-shadow: 0 4px 12px rgba(61, 107, 245, .3);
 }
+
+.brand-mark img { width: 100%; height: 100%; display: block; }
 
 .brand-text { display: flex; flex-direction: column; line-height: 1.25; }
 .brand-text strong { font-size: 16px; }
@@ -288,6 +287,38 @@ code {
 
 .choice:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
 .choice-sm { padding: 8px 12px; margin-bottom: 6px; }
+
+/* 附属项：从属于上一项，用折线标出层级 */
+.sub-choice {
+  position: relative;
+  margin-left: 20px;
+  margin-top: 2px;
+}
+
+.sub-choice::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: -9px;
+  width: 11px;
+  height: 24px;
+  border-left: 1.5px solid var(--line);
+  border-bottom: 1.5px solid var(--line);
+  border-bottom-left-radius: 7px;
+  pointer-events: none;
+}
+
+.sub-choice .choice-desc { margin-top: 2px; }
+
+/* 用 .choice 提权，压过 .choice:has(input:checked) 的选中配色 */
+.choice.sub-choice.is-off {
+  cursor: not-allowed;
+  background: #fbfcfe;
+  border-color: var(--line);
+}
+.choice.sub-choice.is-off:hover { background: #fbfcfe; border-color: var(--line); }
+.choice.sub-choice.is-off .choice-title { color: var(--muted); }
+.choice.sub-choice.is-off .choice-desc { color: #aab4c4; }
 
 .settings-tip { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.5; }
 

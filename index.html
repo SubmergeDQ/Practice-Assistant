@@ -18,7 +18,9 @@
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
-      <div class="brand-mark">练</div>
+      <div class="brand-mark">
+        <img src="assets/icon.svg" alt="" width="36" height="36" />
+      </div>
       <div class="brand-text">
         <strong>练习助手</strong>
         <span>上传题库 · 在线刷题 · 成绩统计</span>
@@ -55,8 +57,6 @@
 
         <div class="upload-actions">
           <button class="btn btn-ghost" id="btn-load-sample" type="button">载入示例题库</button>
-          <button class="btn btn-ghost" id="btn-dl-json" type="button">下载 JSON 模板</button>
-          <button class="btn btn-ghost" id="btn-dl-txt" type="button">下载 TXT 模板</button>
           <button class="btn btn-guide" id="btn-dl-guide" type="button">下载题库生成说明</button>
         </div>
 
@@ -99,6 +99,14 @@
           <label class="choice choice-sm">
             <input type="radio" name="order" value="random" />
             <span class="choice-body"><span class="choice-title">随机打乱</span></span>
+          </label>
+
+          <label class="choice choice-sm sub-choice is-off" id="choice-shuffle-options">
+            <input type="checkbox" id="chk-shuffle-options" disabled />
+            <span class="choice-body">
+              <span class="choice-title">选项顺序也随机打乱</span>
+              <span class="choice-desc">每题选项重新排列并重新编号</span>
+            </span>
           </label>
         </div>
 
