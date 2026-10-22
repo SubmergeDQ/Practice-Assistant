@@ -278,6 +278,16 @@ C. 无连接
       <span class="progress-text" id="progress-text">已答 0 / 0</span>
     </div>
 
+    <div class="study-search is-hidden" id="study-search">
+      <svg class="ss-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="m16.5 16.5 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <input type="text" id="study-search-input" placeholder="输入关键词，搜索题干或选项（支持空格分隔多个词）" autocomplete="off" spellcheck="false" />
+      <button class="ss-clear is-hidden" id="study-search-clear" type="button" aria-label="清空搜索">×</button>
+      <ul class="study-result is-hidden" id="study-result"></ul>
+    </div>
+
     <div class="practice-body">
       <div class="card question-card">
         <div class="q-head">

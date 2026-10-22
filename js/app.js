@@ -54,6 +54,11 @@
     setTimeout(() => { URL.revokeObjectURL(url); if (a.parentNode) a.parentNode.removeChild(a); }, 800);
   }
 
+  /** 转义正则元字符，用于把用户关键词安全地放进 RegExp */
+  function escapeRegExp(s) {
+    return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   /* =========================================================
    * 状态
    * =======================================================*/
@@ -68,6 +73,7 @@
     study: false,        // 背题模式：只看题目与答案，不判题
     reveal: 'auto',      // 背题模式下答案显示方式：auto 直接显示 | click 点击显示
     revealed: [],        // 背题模式下每题答案是否已显示
+    searchTexts: [],     // 背题搜索：每题可搜索文本（题干+选项，小写），避免反复拼接
     order: 'seq',          // seq | random | byType
     shuffleOptions: false, // 选项顺序是否随机（独立开关，不影响出题顺序）
     startTs: 0,
@@ -707,6 +713,131 @@
     if (lgDone) lgDone.innerHTML = '<i class="dot dot-done"></i>已答';
   }
 
+  /* =========================================================
+   * 背题搜索：输入关键词实时定位题目
+   * =======================================================*/
+
+  /** 把关键词按空格拆成多个词，任一题需全部命中才算匹配（AND 关系） */
+  function searchHits(kw) {
+    const terms = String(kw).toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return [];
+    const hits = [];
+    for (let i = 0; i < S.searchTexts.length; i++) {
+      const hay = S.searchTexts[i];
+      if (terms.every((t) => hay.indexOf(t) >= 0)) hits.push(i);
+    }
+    return hits;
+  }
+
+  /** 对已转义的文本高亮关键词，返回带 <mark> 的 HTML */
+  function highlightTerms(text, terms) {
+    let out = text;
+    terms.forEach((t) => {
+      const re = new RegExp('(' + escapeRegExp(t) + ')', 'gi');
+      out = out.replace(re, '<mark>$1</mark>');
+    });
+    return out;
+  }
+
+  /** 渲染搜索结果列表：题号 + 题干摘要，点击跳转 */
+  function renderStudyResults(kw) {
+    const list = $('#study-result');
+    const input = $('#study-search-input');
+    const terms = String(kw).toLowerCase().split(/\s+/).filter(Boolean);
+    const hits = terms.length ? searchHits(kw) : [];
+
+    $('#study-search-clear').classList.toggle('is-hidden', !input.value);
+
+    if (!terms.length || !hits.length) {
+      list.innerHTML = terms.length
+        ? '<li class="sr-empty">没有找到匹配的题目</li>'
+        : '';
+      list.classList.toggle('is-hidden', !terms.length);
+      return;
+    }
+
+    const showCount = 50; // 命中过多时只列前 50 条，避免列表过长
+    let html = '';
+    hits.slice(0, showCount).forEach((i) => {
+      const q = S.questions[i];
+      const typeLabel = { blank: '填空', judge: '判断', multiple: '多选' }[q.type] || '单选';
+      html +=
+        '<li class="sr-item' + (i === S.current ? ' is-current' : '') + '" data-idx="' + i + '">' +
+        '<span class="sr-no">' + (i + 1) + '</span>' +
+        '<span class="sr-text">' + highlightTerms(esc(q.stem), terms) + '</span>' +
+        '<span class="sr-tag">' + typeLabel + '</span>' +
+        '</li>';
+    });
+    if (hits.length > showCount) {
+      html += '<li class="sr-more">还有 ' + (hits.length - showCount) + ' 条结果，请输入更精确的关键词</li>';
+    }
+    list.innerHTML = html;
+    list.classList.remove('is-hidden');
+  }
+
+  /** 关闭搜索结果列表（保留输入内容） */
+  function hideStudyResults() {
+    $('#study-result').classList.add('is-hidden');
+  }
+
+  /** 绑定搜索框交互：输入防抖搜索、Enter 跳转、Esc 清空、点击外关闭 */
+  function bindStudySearch() {
+    const input = $('#study-search-input');
+    const clear = $('#study-search-clear');
+    let timer = null;
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        renderStudyResults(input.value);
+      }, 120);
+    });
+
+    input.addEventListener('focus', () => {
+      if (input.value) renderStudyResults(input.value);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const hits = searchHits(input.value);
+        if (!hits.length) return;
+        // 跳到当前题之后的下一条命中，没有则回到第一条
+        let target = hits[0];
+        for (let k = 0; k < hits.length; k++) {
+          if (hits[k] > S.current) { target = hits[k]; break; }
+        }
+        goTo(target);
+        hideStudyResults();
+      } else if (e.key === 'Escape') {
+        input.value = '';
+        hideStudyResults();
+        $('#study-search-clear').classList.add('is-hidden');
+      }
+    });
+
+    clear.addEventListener('click', () => {
+      input.value = '';
+      input.focus();
+      hideStudyResults();
+      clear.classList.add('is-hidden');
+    });
+
+    // 点击结果项跳转到对应题目
+    $('#study-result').addEventListener('click', (e) => {
+      const li = e.target.closest ? e.target.closest('.sr-item') : null;
+      if (!li) return;
+      goTo(Number(li.getAttribute('data-idx')));
+      hideStudyResults();
+    });
+
+    // 点击搜索栏之外时收起结果列表
+    document.addEventListener('click', (e) => {
+      const box = $('#study-search');
+      if (box && !box.contains(e.target)) hideStudyResults();
+    });
+  }
+
   function firstUngraded() {
     for (let i = 0; i < S.questions.length; i++) if (!isGraded(i)) return i;
     return -1;
@@ -1000,6 +1131,23 @@
     S.revealed = S.questions.map(() => false);
     S.current = 0;
     S.filter = 'all';
+
+    // 预生成背题搜索的匹配文本（题干+所有选项，小写），避免每次输入时反复拼接
+    S.searchTexts = S.questions.map((q) => {
+      const parts = [String(q.stem || '')];
+      (q.options || []).forEach((o) => parts.push(String(o.text || '')));
+      return parts.join('\n').toLowerCase();
+    });
+
+    // 搜索栏只在背题模式显示，每次开始练习时重置状态
+    const searchBox = $('#study-search');
+    searchBox.classList.toggle('is-hidden', !S.study);
+    if (S.study) {
+      const si = $('#study-search-input');
+      si.value = '';
+      hideStudyResults();
+      $('#study-search-clear').classList.add('is-hidden');
+    }
 
     $('#practice-title').textContent = label || (S.bank ? S.bank.title : '练习');
     $('#practice-meta').textContent = '共 ' + S.questions.length + ' 题';
@@ -1422,6 +1570,7 @@
     }
     bindUpload();
     bindPractice();
+    bindStudySearch();
     bindResult();
     bindModal();
     bindOnline();
