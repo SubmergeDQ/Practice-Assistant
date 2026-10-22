@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-20",
+  "updated": "2026-10-22",
   "banks": [
     {
       "name": "形势与政策（1）作业答案",
@@ -14,6 +14,13 @@
       "count": 240,
       "score": 100,
       "types": { "single": 120, "multiple": 120 }
+    },
+    {
+      "name": "2026 年秋形势与政策（专题一至六·全题型）",
+      "file": "2026-fall-xingshi-t1-6.json",
+      "count": 360,
+      "score": 1800,
+      "types": { "single": 120, "multiple": 120, "judge": 60, "blank": 60 }
     }
   ]
 }
