@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>练习助手 · 题库练习与成绩统计</title>
-<meta name="description" content="上传题库文件即可刷题的网页版练习助手：支持单选、多选、判断、填空，即时判题与交卷判题双模式，自动统计成绩并回看错题解析。" />
+<meta name="description" content="上传题库文件即可刷题的网页版练习助手：支持单选、多选、判断、填空，普通练习与背题模式，即时判题与交卷判题双模式，自动统计成绩并回看错题解析。" />
 <meta name="theme-color" content="#3d6bf5" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -40,7 +40,7 @@
   <section id="view-upload" class="view">
     <div class="hero">
       <h1>上传题库，开始练习</h1>
-      <p>支持 <b>单选题</b>、<b>多选题</b>、<b>判断题</b>、<b>填空题</b> 四种题型。题库文件需包含题目与答案，解析可选，有解析时会在判题后一并展示。</p>
+      <p>支持 <b>单选题</b>、<b>多选题</b>、<b>判断题</b>、<b>填空题</b> 四种题型。题库文件需包含题目与答案，解析可选，有解析时会在判题后一并展示。也可以选择<b>背题模式</b>，直接对照题目与答案。</p>
     </div>
 
     <div class="upload-grid">
@@ -74,6 +74,24 @@
         <h2 class="card-title">练习设置</h2>
 
         <div class="field">
+          <div class="field-label">练习模式</div>
+          <label class="choice">
+            <input type="radio" name="study-mode" value="quiz" checked />
+            <span class="choice-body">
+              <span class="choice-title">普通练习</span>
+              <span class="choice-desc">作答并判分，结束后查看成绩与错题</span>
+            </span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="study-mode" value="study" />
+            <span class="choice-body">
+              <span class="choice-title">背题模式</span>
+              <span class="choice-desc">只看题目与答案，不计分、不判题</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="field" id="field-grade">
           <div class="field-label">判题显示方式</div>
           <label class="choice">
             <input type="radio" name="mode" value="instant" checked />
@@ -87,6 +105,24 @@
             <span class="choice-body">
               <span class="choice-title">全部作答后统一判题</span>
               <span class="choice-desc">答题过程中不显示对错，交卷后统一展示</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="field is-hidden" id="field-reveal">
+          <div class="field-label">答案显示方式</div>
+          <label class="choice choice-sm">
+            <input type="radio" name="reveal" value="auto" checked />
+            <span class="choice-body">
+              <span class="choice-title">直接显示答案</span>
+              <span class="choice-desc">每道题的答案与解析同时展示</span>
+            </span>
+          </label>
+          <label class="choice choice-sm">
+            <input type="radio" name="reveal" value="click" />
+            <span class="choice-body">
+              <span class="choice-title">点击后显示答案</span>
+              <span class="choice-desc">先看题目，点「显示答案」再展开答案与解析</span>
             </span>
           </label>
         </div>
@@ -251,22 +287,23 @@ C. 无连接
         </div>
         <div class="q-stem" id="q-stem"></div>
         <div class="q-body" id="q-body"></div>
+        <div class="answer-panel is-hidden" id="answer-panel"></div>
         <div class="feedback is-hidden" id="feedback"></div>
         <div class="q-actions">
           <button class="btn btn-ghost" id="btn-prev" type="button">上一题</button>
           <button class="btn btn-primary" id="btn-main" type="button">提交本题</button>
         </div>
-        <p class="kbd-tip">快捷键：A–H 选择选项 · Enter 提交 / 下一题 · ← → 切换题目</p>
+        <p class="kbd-tip" id="kbd-tip">快捷键：A–H 选择选项 · Enter 提交 / 下一题 · ← → 切换题目</p>
       </div>
 
-      <aside class="card sheet">
+      <aside class="card sheet" id="sheet-aside">
         <h3 class="card-title">答题卡</h3>
         <div class="sheet-grid" id="sheet-grid"></div>
         <div class="sheet-legend">
           <span><i class="dot dot-cur"></i>当前</span>
-          <span><i class="dot dot-done"></i>已答</span>
-          <span><i class="dot dot-ok"></i>正确</span>
-          <span><i class="dot dot-bad"></i>错误</span>
+          <span class="lg-done"><i class="dot dot-done"></i>已答</span>
+          <span class="lg-ok"><i class="dot dot-ok"></i>正确</span>
+          <span class="lg-bad"><i class="dot dot-bad"></i>错误</span>
         </div>
         <div class="sheet-stat" id="sheet-stat">已答 0 / 0</div>
         <button class="btn btn-primary btn-block" id="btn-submit-all" type="button">交卷</button>

@@ -669,6 +669,10 @@ body.modal-open { overflow: hidden; }
 .option.is-wrong { border-color: var(--bad); background: var(--bad-soft); }
 .option.is-wrong .opt-mark { background: var(--bad); color: #fff; }
 
+/* 背题模式：选项只用于对照查看，不可点选 */
+.options.is-static .option { cursor: default; }
+.options.is-static .option:hover { border-color: var(--line); background: #fff; }
+
 /* 填空题 */
 
 .blank-list { display: flex; flex-direction: column; gap: 10px; }
@@ -699,6 +703,36 @@ body.modal-open { overflow: hidden; }
 .blank-input:disabled { background: #f7f9fd; color: var(--ink-2); }
 
 .blank-correct { font-size: 12.5px; color: var(--ok); }
+
+/* 背题模式：答案区 */
+
+.answer-panel {
+  margin-top: 16px;
+  border: 1px solid var(--ok-line);
+  border-radius: 12px;
+  padding: 13px 15px;
+  background: var(--ok-soft);
+}
+
+.ans-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  line-height: 1.6;
+}
+
+.ans-head .k, .ans-exp .k {
+  flex: none;
+  min-width: 64px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.ans-value { font-size: 15px; font-weight: 650; color: #0d7550; }
+
+.ans-exp { display: flex; gap: 8px; margin-top: 8px; font-size: 13.5px; }
+.ans-exp p { flex: 1; color: var(--ink-2); white-space: pre-wrap; }
 
 /* 判题反馈 */
 
@@ -820,6 +854,10 @@ body.modal-open { overflow: hidden; }
   color: var(--muted);
 }
 .sheet-legend span { display: flex; align-items: center; gap: 4px; }
+
+/* 背题模式没有正误状态，图例只保留「当前 / 已看」 */
+.sheet.is-study .lg-ok,
+.sheet.is-study .lg-bad { display: none; }
 
 .dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; border: 1px solid transparent; }
 .dot-cur { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 2px rgba(61, 107, 245, .18); }

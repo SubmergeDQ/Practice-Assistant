@@ -65,6 +65,9 @@
     results: [],         // { graded, correct, score }
     current: 0,
     mode: 'instant',     // instant | defer
+    study: false,        // 背题模式：只看题目与答案，不判题
+    reveal: 'auto',      // 背题模式下答案显示方式：auto 直接显示 | click 点击显示
+    revealed: [],        // 背题模式下每题答案是否已显示
     order: 'seq',          // seq | random | byType
     shuffleOptions: false, // 选项顺序是否随机（独立开关，不影响出题顺序）
     startTs: 0,
@@ -449,6 +452,11 @@
     return !!(r && r.graded);
   }
 
+  /** 背题模式下当前题的答案是否已展开（直接显示 或 已点击过「显示答案」） */
+  function studyAnswerVisible(i) {
+    return S.study && (S.reveal === 'auto' || !!S.revealed[i]);
+  }
+
   /** 该选项在原题里的字母（打乱后与当前字母不同才返回） */
   function originKeyOf(q, key) {
     if (!q.originOptions || q.type === 'judge' || q.type === 'blank') return '';
@@ -545,6 +553,22 @@
     return wrap;
   }
 
+  /** 背题模式的选项：仅用于对照查看，不记录选择、不判题 */
+  function buildStudyOptions(q) {
+    const wrap = document.createElement('div');
+    wrap.className = 'options is-static' + (q.type === 'multiple' ? ' is-multi' : '');
+    q.options.forEach((opt) => {
+      const item = document.createElement('div');
+      item.className = 'option';
+      const mark = q.type === 'judge' ? (opt.key === 'T' ? '√' : '×') : opt.key;
+      item.innerHTML =
+        '<span class="opt-mark">' + mark + '</span>' +
+        '<span class="opt-text">' + esc(opt.text) + '</span>';
+      wrap.appendChild(item);
+    });
+    return wrap;
+  }
+
   function buildBlanks(q, i) {
     const graded = isGraded(i);
     const resp = Array.isArray(S.responses[i]) ? S.responses[i] : [];
@@ -590,9 +614,32 @@
     return wrap;
   }
 
+  /** 背题模式的答案区：正确答案 + 原顺序对照（选项乱序时）+ 解析 */
+  function renderAnswerPanel(i) {
+    const el = $('#answer-panel');
+    const q = S.questions[i];
+    if (!q || !studyAnswerVisible(i)) {
+      el.className = 'answer-panel is-hidden';
+      el.innerHTML = '';
+      return;
+    }
+
+    let html =
+      '<div class="ans-head">' +
+      '<span class="k">正确答案</span>' +
+      '<b class="ans-value">' + esc(correctText(q, true)) + '</b>' +
+      '</div>';
+    if (q.explanation) {
+      html += originOrderHTML(q);
+      html += '<div class="ans-exp"><span class="k">解析</span><p>' + esc(q.explanation) + '</p></div>';
+    }
+    el.className = 'answer-panel';
+    el.innerHTML = html;
+  }
+
   function renderFeedback(i) {
     const el = $('#feedback');
-    if (!isGraded(i) || S.mode !== 'instant') {
+    if (S.study || !isGraded(i) || S.mode !== 'instant') {
       el.className = 'feedback is-hidden';
       el.innerHTML = '';
       return;
@@ -622,21 +669,42 @@
   function renderSheet() {
     const grid = $('#sheet-grid');
     grid.innerHTML = '';
+    const aside = $('#sheet-aside');
+    aside.classList.toggle('is-study', S.study);
 
     S.questions.forEach((q, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'sheet-cell';
       b.textContent = i + 1;
-      if (P.isAnswered(q, S.responses[i])) b.classList.add('is-done');
-      if (isGraded(i)) b.classList.add(S.results[i].correct ? 'is-ok' : 'is-bad');
+      if (S.study) {
+        // 背题模式不判题，只标记「已看」的题
+        if (S.reveal === 'click' && S.revealed[i]) b.classList.add('is-done');
+      } else {
+        if (P.isAnswered(q, S.responses[i])) b.classList.add('is-done');
+        if (isGraded(i)) b.classList.add(S.results[i].correct ? 'is-ok' : 'is-bad');
+      }
       if (i === S.current) b.classList.add('is-current');
       b.addEventListener('click', () => goTo(i));
       grid.appendChild(b);
     });
 
+    const lgDone = $('.lg-done', aside);
+    // 直接显示答案时所有题都没有「已看」之分，图例也隐藏这一项
+    if (lgDone) lgDone.classList.toggle('is-hidden', S.study && S.reveal === 'auto');
+
+    if (S.study) {
+      const seen = S.questions.filter((q, i) => studyAnswerVisible(i)).length;
+      $('#sheet-stat').textContent = S.reveal === 'auto'
+        ? '共 ' + S.questions.length + ' 题'
+        : '已看 ' + seen + ' / ' + S.questions.length;
+      if (lgDone) lgDone.innerHTML = '<i class="dot dot-done"></i>已看';
+      return;
+    }
+
     const done = S.questions.filter((q, i) => P.isAnswered(q, S.responses[i])).length;
     $('#sheet-stat').textContent = '已答 ' + done + ' / ' + S.questions.length;
+    if (lgDone) lgDone.innerHTML = '<i class="dot dot-done"></i>已答';
   }
 
   function firstUngraded() {
@@ -652,7 +720,10 @@
 
     $('#btn-prev').disabled = i === 0;
 
-    if (S.mode === 'instant') {
+    if (S.study) {
+      if (!studyAnswerVisible(i)) main.textContent = '显示答案';
+      else main.textContent = i < last ? '下一题' : '结束背题';
+    } else if (S.mode === 'instant') {
       if (!isGraded(i)) main.textContent = '提交本题';
       else if (i < last) main.textContent = '下一题';
       else main.textContent = firstUngraded() >= 0 ? '继续未答题' : '查看成绩';
@@ -661,8 +732,15 @@
     }
 
     const sub = $('#btn-submit-all');
-    sub.textContent = S.mode === 'instant' ? '结束练习并结算' : '交卷';
+    sub.textContent = S.study ? '结束背题' : S.mode === 'instant' ? '结束练习并结算' : '交卷';
     sub.disabled = total === 0;
+
+    if (S.study) {
+      // 背题模式没有作答进度，进度条改为浏览位置
+      $('#progress-bar').style.width = (total ? ((i + 1) / total) * 100 : 0) + '%';
+      $('#progress-text').textContent = '第 ' + (i + 1) + ' / ' + total + ' 题';
+      return;
+    }
 
     const done = S.questions.filter((q, idx) => P.isAnswered(q, S.responses[idx])).length;
     $('#progress-bar').style.width = (total ? (done / total) * 100 : 0) + '%';
@@ -686,8 +764,14 @@
 
     const body = $('#q-body');
     body.innerHTML = '';
-    body.appendChild(q.type === 'blank' ? buildBlanks(q, S.current) : buildOptions(q, S.current));
+    if (S.study) {
+      // 背题模式：选择题只展示选项；填空题题干已包含空格标记，无需输入框
+      if (q.type !== 'blank') body.appendChild(buildStudyOptions(q));
+    } else {
+      body.appendChild(q.type === 'blank' ? buildBlanks(q, S.current) : buildOptions(q, S.current));
+    }
 
+    renderAnswerPanel(S.current);
     renderFeedback(S.current);
     renderSheet();
     updateControls();
@@ -749,6 +833,21 @@
     const i = S.current;
     const last = total - 1;
 
+    if (S.study) {
+      if (!studyAnswerVisible(i)) {
+        S.revealed[i] = true;
+        renderQuestion();
+        const panel = $('#answer-panel');
+        if (panel && panel.scrollIntoView) {
+          panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+        return;
+      }
+      if (i < last) { goTo(i + 1); return; }
+      endStudy();
+      return;
+    }
+
     if (S.mode === 'instant') {
       if (!isGraded(i)) { submitCurrent(); return; }
       if (i < last) { goTo(i + 1); return; }
@@ -793,6 +892,15 @@
     showView('result');
   }
 
+  /** 结束背题：不计分、不出成绩，直接回到上传页 */
+  function endStudy() {
+    stopTimer();
+    showView('upload');
+    if (S.bank) {
+      notice('本次背题结束：' + esc(S.bank.title) + '（共 ' + S.questions.length + ' 题），可随时重新开始。', 'ok');
+    }
+  }
+
   /** 练习用的题目副本：选项与答案都独立一份，便于单独打乱 */
   function cloneQuestion(q) {
     return {
@@ -834,7 +942,9 @@
   }
 
   function modeSummary() {
-    const tags = [S.mode === 'instant' ? '每题提交后立即判题' : '全部作答后统一判题'];
+    const tags = S.study
+      ? ['背题模式', S.reveal === 'auto' ? '直接显示答案' : '点击显示答案']
+      : [S.mode === 'instant' ? '每题提交后立即判题' : '全部作答后统一判题'];
     const orderLabel = { random: '完全随机', byType: '按题型随机' }[S.order];
     if (orderLabel) tags.push(orderLabel);
     if (S.shuffleOptions) tags.push('选项乱序');
@@ -887,12 +997,16 @@
 
     S.responses = S.questions.map(P.makeEmptyResponse);
     S.results = S.questions.map(() => null);
+    S.revealed = S.questions.map(() => false);
     S.current = 0;
     S.filter = 'all';
 
     $('#practice-title').textContent = label || (S.bank ? S.bank.title : '练习');
     $('#practice-meta').textContent = '共 ' + S.questions.length + ' 题';
     $('#mode-label').textContent = modeSummary();
+    $('#kbd-tip').textContent = S.study
+      ? '快捷键：Enter 显示答案 / 下一题 · ← → 切换题目'
+      : '快捷键：A–H 选择选项 · Enter 提交 / 下一题 · ← → 切换题目';
 
     S.startTs = Date.now();
     startTimer();
@@ -1112,6 +1226,29 @@
       download('题库生成说明.md', text, 'text/markdown');
     });
 
+    // 练习模式：普通练习 / 背题模式。背题模式下判题设置不适用，改用答案显示方式
+    const fieldGrade = $('#field-grade');
+    const fieldReveal = $('#field-reveal');
+    const btnStart = $('#btn-start');
+
+    const syncStudyUI = () => {
+      fieldGrade.classList.toggle('is-hidden', S.study);
+      fieldReveal.classList.toggle('is-hidden', !S.study);
+      btnStart.textContent = S.study ? '开始背题' : '开始练习';
+    };
+
+    $$('input[name="study-mode"]').forEach((el) =>
+      el.addEventListener('change', () => {
+        if (!el.checked) return;
+        S.study = el.value === 'study';
+        syncStudyUI();
+      })
+    );
+
+    $$('input[name="reveal"]').forEach((el) =>
+      el.addEventListener('change', () => { if (el.checked) S.reveal = el.value; })
+    );
+
     $$('input[name="mode"]').forEach((el) =>
       el.addEventListener('change', () => { if (el.checked) S.mode = el.value; })
     );
@@ -1153,23 +1290,30 @@
 
     $('#btn-start').addEventListener('click', () => {
       if (!S.bank || !S.bank.questions.length) return;
+      const checkedStudy = $('input[name="study-mode"]:checked');
+      const checkedReveal = $('input[name="reveal"]:checked');
       const checkedMode = $('input[name="mode"]:checked');
       const checkedOrder = $('input[name="order"]:checked');
+      S.study = checkedStudy ? checkedStudy.value === 'study' : false;
+      S.reveal = checkedReveal ? checkedReveal.value : 'auto';
       S.mode = checkedMode ? checkedMode.value : 'instant';
       S.order = checkedOrder ? checkedOrder.value : 'seq';
       startPractice(S.bank.questions, S.bank.title);
     });
 
     syncSwitch();
+    syncStudyUI();
   }
 
   /** 退出练习：有进度时先确认，避免误触丢失作答 */
   async function leavePractice() {
     const ok = await ask({
-      title: '退出本次练习？',
-      text: '当前作答进度将丢失，已作答的题目不会保留。',
-      okText: '退出练习',
-      cancelText: '继续作答',
+      title: S.study ? '退出背题？' : '退出本次练习？',
+      text: S.study
+        ? '当前浏览进度将丢失，重新开始会从第一题看起。'
+        : '当前作答进度将丢失，已作答的题目不会保留。',
+      okText: S.study ? '退出背题' : '退出练习',
+      cancelText: S.study ? '继续看题' : '继续作答',
       danger: true
     });
     if (!ok) return;
@@ -1180,7 +1324,10 @@
   function bindPractice() {
     $('#btn-prev').addEventListener('click', () => goTo(S.current - 1));
     $('#btn-main').addEventListener('click', onMain);
-    $('#btn-submit-all').addEventListener('click', confirmFinish);
+    $('#btn-submit-all').addEventListener('click', () => {
+      if (S.study) { endStudy(); return; }
+      confirmFinish();
+    });
     $('#btn-quit').addEventListener('click', leavePractice);
   }
 
@@ -1252,7 +1399,7 @@
       if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(S.current - 1); return; }
       if (e.key === 'ArrowRight') { e.preventDefault(); goTo(S.current + 1); return; }
 
-      if (/^[a-hA-H]$/.test(e.key) && !isGraded(S.current)) {
+      if (!S.study && /^[a-hA-H]$/.test(e.key) && !isGraded(S.current)) {
         const k = e.key.toUpperCase();
         if (q.type === 'single' || q.type === 'multiple') {
           if (q.options.some((o) => o.key === k)) {
