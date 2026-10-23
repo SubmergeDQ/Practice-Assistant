@@ -947,9 +947,11 @@ body.modal-open { overflow: hidden; }
 .sheet { position: sticky; top: 78px; }
 
 .sheet-grid {
+  --sheet-cell-min: 32px;
+  --sheet-gap: 6px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--sheet-cell-min), 1fr));
+  gap: var(--sheet-gap);
 }
 
 .sheet-pager {

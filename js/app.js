@@ -63,8 +63,8 @@
    * 状态
    * =======================================================*/
 
-  /** 答题卡每页题数：题目多时按页展示，避免答题卡页面过长 */
-  const SHEET_PAGE_SIZE = 50;
+  /** 答题卡每页固定行数；每行题数由容器宽度决定，避免大屏浪费空间 */
+  const SHEET_ROWS = 5;
 
   const S = {
     bank: null,          // { title, questions:[], warnings:[] }
@@ -676,18 +676,32 @@
     el.innerHTML = html;
   }
 
+  /** 每页题数 = 固定 5 行 × 当前容器宽度能排下的列数 */
+  function sheetPageSize() {
+    const grid = $('#sheet-grid');
+    const style = getComputedStyle(grid);
+    const minWidth = parseFloat(style.getPropertyValue('--sheet-cell-min')) || 32;
+    const gap = parseFloat(style.getPropertyValue('--sheet-gap')) || 6;
+    const width = grid.clientWidth;
+    // 视图隐藏时宽度为 0，退回桌面侧栏常见的 6 列，布局就绪后会自动校正
+    if (!width) return 6 * SHEET_ROWS;
+    const cols = Math.max(1, Math.floor((width + gap) / (minWidth + gap)));
+    return cols * SHEET_ROWS;
+  }
+
   function renderSheet() {
     const grid = $('#sheet-grid');
+    const pageSize = sheetPageSize();
     grid.innerHTML = '';
     const aside = $('#sheet-aside');
     aside.classList.toggle('is-study', S.study);
 
     const total = S.questions.length;
-    const pageCount = Math.max(1, Math.ceil(total / SHEET_PAGE_SIZE));
+    const pageCount = Math.max(1, Math.ceil(total / pageSize));
     // 题量变化或页码越界时兜底，避免出现空白页
     S.sheetPage = Math.min(Math.max(S.sheetPage, 0), pageCount - 1);
-    const start = S.sheetPage * SHEET_PAGE_SIZE;
-    const end = Math.min(start + SHEET_PAGE_SIZE, total);
+    const start = S.sheetPage * pageSize;
+    const end = Math.min(start + pageSize, total);
 
     for (let i = start; i < end; i++) {
       const q = S.questions[i];
@@ -734,7 +748,7 @@
 
   /** 答题卡翻页：只切换页码，不改变当前题目 */
   function turnSheetPage(delta) {
-    const pageCount = Math.max(1, Math.ceil(S.questions.length / SHEET_PAGE_SIZE));
+    const pageCount = Math.max(1, Math.ceil(S.questions.length / sheetPageSize()));
     const next = S.sheetPage + delta;
     if (next < 0 || next >= pageCount) return;
     S.sheetPage = next;
@@ -954,7 +968,7 @@
     if (i < 0 || i >= S.questions.length) return;
     S.current = i;
     // 切题时让答题卡自动翻到该题所在页
-    S.sheetPage = Math.floor(i / SHEET_PAGE_SIZE);
+    S.sheetPage = Math.floor(i / sheetPageSize());
     renderQuestion();
   }
 
@@ -1189,8 +1203,9 @@
 
     S.startTs = Date.now();
     startTimer();
-    renderQuestion();
+    // 先显示练习页再渲染，答题卡才能按真实容器宽度计算每行列数
     showView('practice');
+    renderQuestion();
   }
 
   /* =========================================================
@@ -1510,6 +1525,22 @@
       confirmFinish();
     });
     $('#btn-quit').addEventListener('click', leavePractice);
+
+    // 答题卡宽度变化会改变每行列数：重新分页，并让当前题保持可见
+    let lastSheetWidth = 0;
+    const syncSheetLayout = () => {
+      if (!S.questions.length || $('#view-practice').classList.contains('is-hidden')) return;
+      const width = $('#sheet-grid').clientWidth;
+      if (!width || width === lastSheetWidth) return;
+      lastSheetWidth = width;
+      S.sheetPage = Math.floor(S.current / sheetPageSize());
+      renderSheet();
+    };
+    if (typeof ResizeObserver === 'function') {
+      new ResizeObserver(syncSheetLayout).observe($('#sheet-grid'));
+    } else {
+      window.addEventListener('resize', syncSheetLayout);
+    }
   }
 
   /** 顶栏品牌区：点击回到上传页 */
