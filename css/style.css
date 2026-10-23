@@ -952,6 +952,39 @@ body.modal-open { overflow: hidden; }
   gap: 6px;
 }
 
+.sheet-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.sheet-page-btn {
+  width: 34px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink-2);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all .14s ease;
+}
+
+.sheet-page-btn:hover:not(:disabled) { border-color: #b9cbf3; color: var(--primary-d); }
+.sheet-page-btn:disabled { opacity: .4; cursor: default; }
+
+.sheet-page-info {
+  min-width: 52px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .sheet-cell {
   height: 32px;
   padding: 0;

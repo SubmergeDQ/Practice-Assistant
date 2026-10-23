@@ -63,6 +63,9 @@
    * 状态
    * =======================================================*/
 
+  /** 答题卡每页题数：题目多时按页展示，避免答题卡页面过长 */
+  const SHEET_PAGE_SIZE = 50;
+
   const S = {
     bank: null,          // { title, questions:[], warnings:[] }
     questions: [],       // 本轮实际练习的题目
@@ -79,7 +82,8 @@
     startTs: 0,
     elapsed: 0,
     timerId: null,
-    filter: 'all'
+    filter: 'all',
+    sheetPage: 0           // 答题卡当前页码（从 0 开始）
   };
 
   /* =========================================================
@@ -678,7 +682,15 @@
     const aside = $('#sheet-aside');
     aside.classList.toggle('is-study', S.study);
 
-    S.questions.forEach((q, i) => {
+    const total = S.questions.length;
+    const pageCount = Math.max(1, Math.ceil(total / SHEET_PAGE_SIZE));
+    // 题量变化或页码越界时兜底，避免出现空白页
+    S.sheetPage = Math.min(Math.max(S.sheetPage, 0), pageCount - 1);
+    const start = S.sheetPage * SHEET_PAGE_SIZE;
+    const end = Math.min(start + SHEET_PAGE_SIZE, total);
+
+    for (let i = start; i < end; i++) {
+      const q = S.questions[i];
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'sheet-cell';
@@ -693,7 +705,14 @@
       if (i === S.current) b.classList.add('is-current');
       b.addEventListener('click', () => goTo(i));
       grid.appendChild(b);
-    });
+    }
+
+    // 分页条：只有一页时隐藏
+    const pager = $('#sheet-pager');
+    pager.classList.toggle('is-hidden', pageCount <= 1);
+    $('#sheet-page-info').textContent = (S.sheetPage + 1) + ' / ' + pageCount;
+    $('#sheet-prev').disabled = S.sheetPage <= 0;
+    $('#sheet-next').disabled = S.sheetPage >= pageCount - 1;
 
     const lgDone = $('.lg-done', aside);
     // 直接显示答案时所有题都没有「已看」之分，图例也隐藏这一项
@@ -711,6 +730,15 @@
     const done = S.questions.filter((q, i) => P.isAnswered(q, S.responses[i])).length;
     $('#sheet-stat').textContent = '已答 ' + done + ' / ' + S.questions.length;
     if (lgDone) lgDone.innerHTML = '<i class="dot dot-done"></i>已答';
+  }
+
+  /** 答题卡翻页：只切换页码，不改变当前题目 */
+  function turnSheetPage(delta) {
+    const pageCount = Math.max(1, Math.ceil(S.questions.length / SHEET_PAGE_SIZE));
+    const next = S.sheetPage + delta;
+    if (next < 0 || next >= pageCount) return;
+    S.sheetPage = next;
+    renderSheet();
   }
 
   /* =========================================================
@@ -925,6 +953,8 @@
   function goTo(i) {
     if (i < 0 || i >= S.questions.length) return;
     S.current = i;
+    // 切题时让答题卡自动翻到该题所在页
+    S.sheetPage = Math.floor(i / SHEET_PAGE_SIZE);
     renderQuestion();
   }
 
@@ -1130,6 +1160,7 @@
     S.results = S.questions.map(() => null);
     S.revealed = S.questions.map(() => false);
     S.current = 0;
+    S.sheetPage = 0;
     S.filter = 'all';
 
     // 预生成背题搜索的匹配文本（题干+所有选项，小写），避免每次输入时反复拼接
@@ -1472,6 +1503,8 @@
   function bindPractice() {
     $('#btn-prev').addEventListener('click', () => goTo(S.current - 1));
     $('#btn-main').addEventListener('click', onMain);
+    $('#sheet-prev').addEventListener('click', () => turnSheetPage(-1));
+    $('#sheet-next').addEventListener('click', () => turnSheetPage(1));
     $('#btn-submit-all').addEventListener('click', () => {
       if (S.study) { endStudy(); return; }
       confirmFinish();
